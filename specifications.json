@@ -1,0 +1,302 @@
+{
+  "frontend": {
+    "assets": {
+      "favicon": {
+        "file": "assets/favicon.ico",
+        "responsibility": "ブラウザタブおよび Apple Touch Icon 用アイコン"
+      },
+      "stylesheet": {
+        "file": "style.css",
+        "responsibility": "アプリ全体のレイアウト・配色・モーダル・テーブル・チャート領域・レスポンシブ対応を定義する",
+        "sections": {
+          "layout": "body, app-container, card の基本レイアウトと配色",
+          "controls": "条件設定 UI（mode-block, mode-conditions）",
+          "buttons": "primary / secondary / ghost / small ボタンのスタイル",
+          "table": "固定ヘッダ方式のテーブル構造と列幅同期",
+          "loadingOverlay": "最前面のローディング表示",
+          "modal": "チャートモーダルのレイアウト・ヘッダー・ボディ",
+          "timeframeSelector": "日足/週足/月足の切替 UI",
+          "chartSettings": "チャート設定ポップアップ",
+          "chartLegend": "チャート凡例の位置・背景・影",
+          "responsive": "600px 以下での UI 最適化"
+        }
+      }
+    },
+    "libraries": {
+      "xlsx": {
+        "file": "libs/xlsx.full.min.js",
+        "responsibility": "フロントエンドでの Excel 読み込み用ライブラリ"
+      },
+      "lightweightCharts": {
+        "file": "libs/lightweight-charts.standalone.production.js",
+        "version": "5.1.0",
+        "license": "Apache-2.0"
+      }
+    },
+    "scripts": {
+      "screening": {
+        "file": "screening.js",
+        "responsibility": "出来高×上髭スクリーニング / 値上がり率ランキングの実行と結果テーブル描画",
+        "api": {
+          "baseUrl": "https://yfinance-api-fe86988c-d3b4-f1c6-640d.onrender.com",
+          "endpoints": {
+            "dates": "GET /dates（降順の日付リスト）",
+            "screening": {
+              "path": "GET /screening",
+              "modes": {
+                "ratio": {
+                  "query": [
+                    "mode=ratio",
+                    "volume_ratio=<number>",
+                    "shadow_ratio=<number>",
+                    "target_date=<yyyymmdd>"
+                  ]
+                },
+                "date_ranking": {
+                  "query": [
+                    "mode=date_ranking",
+                    "target_date=<yyyymmdd>"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "ui": {
+          "modes": {
+            "ratio": {
+              "controls": [
+                "#volumeRatio",
+                "#shadowRatio",
+                "#ratioDateSelect"
+              ],
+              "tableColumns": [
+                "コード",
+                "銘柄名",
+                "出来高倍率",
+                "上髭実体比",
+                "出来高",
+                "上髭",
+                "実体"
+              ]
+            },
+            "date": {
+              "controls": [
+                "#dateSelect"
+              ],
+              "tableColumns": [
+                "コード",
+                "銘柄名",
+                "値上がり率",
+                "当日終値",
+                "前日終値"
+              ]
+            }
+          },
+          "elements": {
+            "startBtn": "#startBtn",
+            "cancelBtn": "#cancelBtn",
+            "progressText": "#progressText",
+            "elapsedTime": "#elapsedTime",
+            "tbody": "#resultTable tbody",
+            "dateSelect": "#dateSelect",
+            "ratioDateSelect": "#ratioDateSelect",
+            "loadingOverlay": "#loadingOverlay",
+            "resultCount": "#resultCount"
+          }
+        },
+        "behavior": {
+          "init": "window.onload で initSearchMode と loadDates を実行",
+          "modeSwitch": "searchMode ラジオボタンで ratio/date の入力有効・無効を切り替え",
+          "startScreening": "入力検証 → テーブルヘッダ更新 → 経過時間カウンタ開始 → /screening 呼び出し → showResults",
+          "cancelScreening": "AbortController.abort() で fetch を中断",
+          "sorting": "固定ヘッダの th[data-sort-key] クリックで currentResults を昇順/降順ソート",
+          "rowClick": "行クリックで openChartModal(コード, 銘柄名, index) を呼び出し",
+          "resultSharing": "window.setScreeningResults が関数なら、結果配列を渡して呼び出す"
+        }
+      },
+      "chartIndicators": {
+        "file": "js/chart-indicators.js",
+        "responsibility": "チャート用インジケータ計算モジュール（MA / Ichimoku / BB / RCI / MACD）",
+        "functions": {
+          "calcMA": {
+            "input": "data[{time, close}]",
+            "output": "SMA（期間可変）",
+            "usedBy": "chart-price.js"
+          },
+          "calcIchimoku": {
+            "components": [
+              "tenkan(9)",
+              "kijun(26)",
+              "span1(転換線+基準線の平均を26本先)",
+              "span2(52期間高値安値の平均を26本先)",
+              "chikou(26本前)"
+            ],
+            "usedBy": "chart-price.js"
+          },
+          "calcBB": {
+            "period": 20,
+            "sigma": 2,
+            "output": ["mid", "upper", "lower"],
+            "usedBy": "chart-price.js"
+          },
+          "calcRCI": {
+            "period": 9,
+            "logic": "順位相関係数",
+            "usedBy": "chart-rci.js"
+          },
+          "calcEMA": {
+            "purpose": "MACD 計算の基礎",
+            "usedBy": "calcMACD"
+          },
+          "calcMACD": {
+            "shortPeriod": 12,
+            "longPeriod": 26,
+            "signalPeriod": 9,
+            "output": ["macdData", "signalData", "histData"],
+            "usedBy": "chart-macd.js"
+          }
+        }
+      },
+      "chartData": {
+        "file": "js/chart-data.js",
+        "responsibility": "バックエンドAPIからOHLCVを取得し、Lightweight Charts用のcandleData形式に整形する",
+        "api": {
+          "endpoint": "/chart",
+          "baseUrl": "https://yfinance-api-fe86988c-d3b4-f1c6-640d.onrender.com",
+          "queryParams": ["ticker", "timeframe"]
+        },
+        "input": {
+          "ticker": "例: '7203.T'",
+          "timeframe": "例: '1d', '1wk', '1mo'"
+        },
+        "output": {
+          "type": "candleData[]",
+          "fields": ["time(UNIX秒)", "open", "high", "low", "close", "volume"]
+        },
+        "behavior": {
+          "sort": "日付キー（YYYY-MM-DD）を昇順ソート",
+          "convertTime": "Date → UNIX秒（ミリ秒→秒）",
+          "errorHandling": [
+            "json.Close が無い場合は null を返す",
+            "fetch エラー時も null を返す"
+          ]
+        },
+        "usedBy": "chart-main.js（drawChart → fetchChartData）"
+      },
+      "chartPrice": {
+        "file": "js/chart-price.js",
+        "responsibility": "ローソク足 + 出来高 + MA + BB + 一目均衡表の描画"
+      },
+      "chartRci": {
+        "file": "js/chart-rci.js",
+        "responsibility": "RCI(9) と RCI(26) の描画"
+      },
+      "chartMacd": {
+        "file": "js/chart-macd.js",
+        "responsibility": "MACD + Signal + Histogram の描画"
+      },
+      "chartSync": {
+        "file": "js/chart-sync.js",
+        "responsibility": "チャート同期・リサイズ処理・初期表示範囲"
+      },
+      "chartMain": {
+        "file": "js/chart-main.js",
+        "responsibility": "モーダル制御・チャート描画の司令塔"
+      }
+    }
+  },
+  "backend": {
+    "fastapi": {
+      "file": "app/main.py",
+      "responsibility": "フロントエンドからのスクリーニング・チャートデータ要求に応答する API サーバ",
+      "cors": {
+        "allow_origins": [
+          "https://yt-f6d34a22-537c-e881-530f-f9e7a956a78b.github.io"
+        ],
+        "allow_methods": "*",
+        "allow_headers": "*"
+      },
+      "dataSources": {
+        "data_json": "GitHub Raw の data/data.json（fetch.js が生成）",
+        "data_j.xlsx": "GitHub Raw の data/data_j.xlsx（download-jpx-xlsx.js が生成）"
+      },
+      "endpoints": {
+        "/dates": {
+          "method": "GET",
+          "responsibility": "全銘柄の全日付キー（YYYYMMDD）を抽出し、降順で返す"
+        },
+        "/screening": {
+          "method": "GET",
+          "modes": {
+            "ratio": {
+              "responsibility": "出来高倍率 × 上髭実体比スクリーニング",
+              "required": ["target_date"],
+              "calculations": [
+                "出来高倍率 = today.v / prev.v",
+                "上髭実体比 = (high - max(open, close)) / abs(close - open)"
+              ],
+              "output": "コード昇順"
+            },
+            "date_ranking": {
+              "responsibility": "値上がり率ランキング",
+              "required": ["target_date"],
+              "calculations": [
+                "値上がり率 = (today_close - prev_close) / prev_close * 100"
+              ],
+              "output": "値上がり率降順トップ100"
+            }
+          }
+        },
+        "/chart": {
+          "method": "GET",
+          "responsibility": "日足6000日から 1d / 1wk / 1mo の OHLCV を生成して返す",
+          "timeframes": {
+            "1d": "日足の直近200本",
+            "1wk": "週足（W-FRI）の直近200本",
+            "1mo": "月足（ME）の直近200本"
+          },
+          "outputFormat": {
+            "Open": "日付文字列 → 値",
+            "High": "同上",
+            "Low": "同上",
+            "Close": "同上",
+            "Volume": "同上"
+          }
+        }
+      }
+    },
+    "jpx_xlsx": {
+      "file": "download-jpx-xlsx.js",
+      "responsibility": "JPX data_j.xls を取得し、LibreOffice で XLSX に変換 + バックアップ管理",
+      "output": "data/data_j.xlsx"
+    },
+    "fetch": {
+      "file": "fetch.js",
+      "responsibility": "data/data_j.xlsx から銘柄コードを読み取り、Yahoo Finance から直近10日分の OHLCV を取得して data.json を生成",
+      "output": "data/data.json"
+    },
+    "margin": {
+      "file": "margin.js",
+      "responsibility": "JSF + 楽天規制 + JPX週次 + JPX日々公表 → margin.json 統合",
+      "output": "data/margin.json"
+    }
+  },
+  "workflows": {
+    "download-jpx-xlsx.yml": {
+      "responsibility": "JPX data_j.xls の取得・XLSX変換・バックアップ"
+    },
+    "fetch.yml": {
+      "responsibility": "Yahoo Finance から data.json を更新"
+    },
+    "margin.yml": {
+      "responsibility": "margin.json の自動更新"
+    }
+  },
+  "dataFlow": {
+    "chartData": "chart-data.js → fetchChartData → API /chart → candleData → chart-main.js → 各チャート描画",
+    "screening": "screening.js → API /screening → テーブル表示 → 行クリックで chart-main.js を呼び出し",
+    "margin": "margin.js → margin.json（信用取引可否データ）",
+    "jpx": "download-jpx-xlsx.js → data_j.xlsx → fetch.js → data.json"
+  }
+}
