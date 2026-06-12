@@ -219,7 +219,9 @@
       },
       "dataSources": {
         "data_json": "GitHub Raw の data/data.json（fetch.js が生成）",
-        "data_j.xlsx": "GitHub Raw の data/data_j.xlsx（download-jpx-xlsx.js が生成）"
+        "data_j.xlsx": "GitHub Raw の data/data_j.xlsx（download-jpx-xlsx.js が生成）",
+        "margin_json": "GitHub Raw の data/margin.json（margin.js が生成）",
+        "heuristics_json": "GitHub Raw の data/heuristics.json（heuristics.js が生成）"
       },
       "endpoints": {
         "/dates": {
@@ -266,6 +268,41 @@
         }
       }
     },
+    "heuristics": {
+      "file": "scripts/heuristics.js",
+      "responsibility": "全銘柄の日足・週足・月足を取得し、heuristics_conditions.js の SAFE 判定を適用して heuristics.json を生成する",
+      "logic": {
+        "safeMA": "safeCalcMA により MA 計算不足時は null を返し例外を出さない",
+        "skipRules": {
+          "daily_min": 100,
+          "weekly_min": 100,
+          "monthly_min": 75,
+          "log_format": "Skipping SYMBOL due to insufficient candles. { daily: X > 100 required, weekly: Y > 100 required, monthly: Z < 75 required }"
+        },
+        "output": "data/heuristics.json"
+      }
+    },
+    "heuristics_conditions": {
+      "file": "scripts/heuristics_conditions.js",
+      "responsibility": "MA系・酒田五法・三尊・W底・N大・ものわかれ・Rule9 の SAFE 判定ロジック",
+      "safety": "calcMA の throw を完全排除し、全て safeCalcMA で null-safe に処理",
+      "rules": [
+        "MA slope",
+        "Perfect Order / Reverse PO",
+        "Pre-PO / Pre-RPO",
+        "MA Congestion",
+        "MA Spread",
+        "MA100 Trend",
+        "Kahanshin / Gyaku-Kahanshin",
+        "5MA High/Low Update",
+        "Sakata 五法",
+        "Head and Shoulders",
+        "Double Bottom",
+        "Nichi-Dai / Gyaku-Nichi-Dai",
+        "Monowakare / Cross",
+        "Rule9 Daily / Weekly（SAFE 実装）"
+      ]
+    },
     "jpx_xlsx": {
       "file": "download-jpx-xlsx.js",
       "responsibility": "JPX data_j.xls を取得し、LibreOffice で XLSX に変換 + バックアップ管理",
@@ -291,12 +328,17 @@
     },
     "margin.yml": {
       "responsibility": "margin.json の自動更新"
+    },
+    "heuristics.yml": {
+      "responsibility": "全銘柄の OHLCV を取得し heuristics.json を生成する SAFE ワークフロー",
+      "output": "data/heuristics.json"
     }
   },
   "dataFlow": {
     "chartData": "chart-data.js → fetchChartData → API /chart → candleData → chart-main.js → 各チャート描画",
     "screening": "screening.js → API /screening → テーブル表示 → 行クリックで chart-main.js を呼び出し",
     "margin": "margin.js → margin.json（信用取引可否データ）",
-    "jpx": "download-jpx-xlsx.js → data_j.xlsx → fetch.js → data.json"
+    "jpx": "download-jpx-xlsx.js → data_j.xlsx → fetch.js → data.json",
+    "heuristics": "heuristics.js → heuristics_conditions.js → heuristics.json → API /heuristics → フロントエンドで利用"
   }
 }
