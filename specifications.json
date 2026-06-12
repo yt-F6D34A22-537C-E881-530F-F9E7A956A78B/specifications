@@ -36,7 +36,7 @@
     "scripts": {
       "screening": {
         "file": "screening.js",
-        "responsibility": "出来高×上髭スクリーニング / 値上がり率ランキングの実行と結果テーブル描画",
+        "responsibility": "出来高×上髭スクリーニング / 値上がり率ランキング / heuristics の実行と結果テーブル描画",
         "api": {
           "baseUrl": "https://yfinance-api-fe86988c-d3b4-f1c6-640d.onrender.com",
           "endpoints": {
@@ -57,6 +57,12 @@
                     "mode=date_ranking",
                     "target_date=<yyyymmdd>"
                   ]
+                },
+                "heuristics": {
+                  "query": [
+                    "mode=heuristics"
+                  ],
+                  "responsibility": "GitHub Raw の heuristics.json を返却し、フロントエンドで利用可能にする"
                 }
               }
             }
@@ -91,6 +97,14 @@
                 "当日終値",
                 "前日終値"
               ]
+            },
+            "heuristics": {
+              "controls": [],
+              "tableColumns": [
+                "コード",
+                "銘柄名",
+                "TECH_* 判定（全項目）"
+              ]
             }
           },
           "elements": {
@@ -107,7 +121,7 @@
         },
         "behavior": {
           "init": "window.onload で initSearchMode と loadDates を実行",
-          "modeSwitch": "searchMode ラジオボタンで ratio/date の入力有効・無効を切り替え",
+          "modeSwitch": "searchMode ラジオボタンで ratio/date/heuristics の入力有効・無効を切り替え",
           "startScreening": "入力検証 → テーブルヘッダ更新 → 経過時間カウンタ開始 → /screening 呼び出し → showResults",
           "cancelScreening": "AbortController.abort() で fetch を中断",
           "sorting": "固定ヘッダの th[data-sort-key] クリックで currentResults を昇順/降順ソート",
@@ -247,6 +261,10 @@
                 "値上がり率 = (today_close - prev_close) / prev_close * 100"
               ],
               "output": "値上がり率降順トップ100"
+            },
+            "heuristics": {
+              "responsibility": "GitHub Raw の heuristics.json を返却する",
+              "output": "TECH_* 判定および Rule9 結果"
             }
           }
         },
@@ -339,6 +357,6 @@
     "screening": "screening.js → API /screening → テーブル表示 → 行クリックで chart-main.js を呼び出し",
     "margin": "margin.js → margin.json（信用取引可否データ）",
     "jpx": "download-jpx-xlsx.js → data_j.xlsx → fetch.js → data.json",
-    "heuristics": "heuristics.js → heuristics_conditions.js → heuristics.json → API /heuristics → フロントエンドで利用"
+    "heuristics": "heuristics.js → heuristics_conditions.js → heuristics.json → /screening?mode=heuristics → フロントエンドで利用"
   }
 }
