@@ -62,7 +62,7 @@
                   "query": [
                     "mode=heuristics"
                   ],
-                  "responsibility": "GitHub Raw の heuristics.json を返却し、フロントエンドで利用可能にする"
+                  "responsibility": "GitHub Raw の heuristics_YYYYMMDD.json を返却し、フロントエンドで利用可能にする"
                 }
               }
             }
@@ -235,7 +235,7 @@
         "data_json": "GitHub Raw の data/data.json（fetch.js が生成）",
         "data_j.xlsx": "GitHub Raw の data/data_j.xlsx（download-jpx-xlsx.js が生成）",
         "margin_json": "GitHub Raw の data/margin.json（margin.js が生成）",
-        "heuristics_json": "GitHub Raw の data/heuristics.json（heuristics.js が生成）"
+        "heuristics_json": "GitHub Raw の data/heuristics_YYYYMMDD.json（heuristics.js が生成）"
       },
       "endpoints": {
         "/dates": {
@@ -263,7 +263,7 @@
               "output": "値上がり率降順トップ100"
             },
             "heuristics": {
-              "responsibility": "GitHub Raw の heuristics.json を返却する",
+              "responsibility": "GitHub Raw の heuristics_YYYYMMDD.json を返却する",
               "output": "TECH_* 判定および Rule9 結果"
             }
           }
@@ -288,7 +288,7 @@
     },
     "heuristics": {
       "file": "scripts/heuristics.js",
-      "responsibility": "全銘柄の日足・週足・月足を取得し、heuristics_conditions.js の SAFE 判定を適用して heuristics.json を生成する",
+      "responsibility": "全銘柄の日足・週足・月足を取得し、heuristics_conditions.js の SAFE 判定を適用して heuristics_YYYYMMDD.json を生成する",
       "logic": {
         "safeMA": "safeCalcMA により MA 計算不足時は null を返し例外を出さない",
         "skipRules": {
@@ -297,7 +297,16 @@
           "monthly_min": 75,
           "log_format": "Skipping SYMBOL due to insufficient candles. { daily: X > 100 required, weekly: Y > 100 required, monthly: Z < 75 required }"
         },
-        "output": "data/heuristics.json"
+        "output": {
+          "fileFormat": "heuristics_YYYYMMDD.json",
+          "dateSource": "Yahoo Finance API の daily データの最新日付",
+          "overwrite": "同名ファイルが存在する場合は上書きする",
+          "backup": {
+            "directory": "data/backup",
+            "fileFormat": "heuristics_YYYYMMDD.json.YYYYMMDD_hhmmss",
+            "keep": 8
+          }
+        }
       }
     },
     "heuristics_conditions": {
@@ -348,8 +357,12 @@
       "responsibility": "margin.json の自動更新"
     },
     "heuristics.yml": {
-      "responsibility": "全銘柄の OHLCV を取得し heuristics.json を生成する SAFE ワークフロー",
-      "output": "data/heuristics.json"
+      "responsibility": "全銘柄の OHLCV を取得し heuristics_YYYYMMDD.json を生成する SAFE ワークフロー",
+      "output": {
+        "fileFormat": "heuristics_YYYYMMDD.json",
+        "overwrite": "同名ファイルが存在する場合は上書きする",
+        "backup": "data/backup に heuristics_YYYYMMDD.json.TIMESTAMP を最大 8 個保持"
+      }
     }
   },
   "dataFlow": {
@@ -357,6 +370,6 @@
     "screening": "screening.js → API /screening → テーブル表示 → 行クリックで chart-main.js を呼び出し",
     "margin": "margin.js → margin.json（信用取引可否データ）",
     "jpx": "download-jpx-xlsx.js → data_j.xlsx → fetch.js → data.json",
-    "heuristics": "heuristics.js → heuristics_conditions.js → heuristics.json → /screening?mode=heuristics → フロントエンドで利用"
+    "heuristics": "heuristics.js → heuristics_conditions.js → heuristics_YYYYMMDD.json → /screening?mode=heuristics → フロントエンドで利用"
   }
 }
