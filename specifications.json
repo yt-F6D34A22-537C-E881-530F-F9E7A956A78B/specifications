@@ -60,9 +60,10 @@
                 },
                 "heuristics": {
                   "query": [
-                    "mode=heuristics"
+                    "mode=heuristics",
+                    "target_date=<yyyymmdd?>"
                   ],
-                  "responsibility": "GitHub Raw の heuristics_YYYYMMDD.json を返却し、フロントエンドで利用可能にする"
+                  "responsibility": "GitHub API で heuristics フォルダを探索し、target_date 指定時は heuristics_YYYYMMDD.json、未指定時は最新 heuristics_YYYYMMDD.json を返却する"
                 }
               }
             }
@@ -235,7 +236,7 @@
         "data_json": "GitHub Raw の data/data.json（fetch.js が生成）",
         "data_j.xlsx": "GitHub Raw の data/data_j.xlsx（download-jpx-xlsx.js が生成）",
         "margin_json": "GitHub Raw の data/margin.json（margin.js が生成）",
-        "heuristics_json": "GitHub Raw の data/heuristics_YYYYMMDD.json（heuristics.js が生成）"
+        "heuristics_json": "GitHub API で data/heuristics/YYYYMM/heuristics_YYYYMMDD.json を探索し、download_url 経由で取得（heuristics.js が生成）"
       },
       "endpoints": {
         "/dates": {
@@ -263,8 +264,16 @@
               "output": "値上がり率降順トップ100"
             },
             "heuristics": {
-              "responsibility": "GitHub Raw の heuristics_YYYYMMDD.json を返却する",
-              "output": "TECH_* 判定および Rule9 結果"
+              "responsibility": "GitHub API を利用して heuristics フォルダを探索し、target_date 指定時は heuristics_YYYYMMDD.json、未指定時は最新 heuristics_YYYYMMDD.json を返却する",
+              "parameters": {
+                "target_date": "任意（YYYYMMDD）。指定時は該当 heuristics_YYYYMMDD.json を返却。未指定時は最新ファイルを返却。"
+              },
+              "logic": [
+                "API_ROOT_HEURISTICS = https://api.github.com/repos/<USER>/<REPO>/contents/data/heuristics",
+                "target_date 指定時：YYYYMM フォルダ → heuristics_YYYYMMDD.json を検索 → download_url で取得",
+                "target_date 無指定時：最新 YYYYMM フォルダ → 最新 heuristics_YYYYMMDD.json を検索 → download_url で取得"
+              ],
+              "output": "TECH_* 判定および Rule9 結果（全銘柄）"
             }
           }
         },
@@ -299,6 +308,7 @@
         },
         "output": {
           "fileFormat": "heuristics_YYYYMMDD.json",
+          "directory": "data/heuristics/YYYYMM/",
           "dateSource": "Yahoo Finance API の daily データの最新日付",
           "overwrite": "同名ファイルが存在する場合は上書きする",
           "backup": {
@@ -370,6 +380,4 @@
     "screening": "screening.js → API /screening → テーブル表示 → 行クリックで chart-main.js を呼び出し",
     "margin": "margin.js → margin.json（信用取引可否データ）",
     "jpx": "download-jpx-xlsx.js → data_j.xlsx → fetch.js → data.json",
-    "heuristics": "heuristics.js → heuristics_conditions.js → heuristics_YYYYMMDD.json → /screening?mode=heuristics → フロントエンドで利用"
-  }
-}
+    "heuristics": "heuristics.js → heuristics_conditions.js → heuristics
