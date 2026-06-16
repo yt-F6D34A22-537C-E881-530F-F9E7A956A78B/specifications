@@ -272,8 +272,8 @@
       },
       "dataSources": {
         "data_json": "GitHub Raw の data/data.json（fetch.js が生成）",
-        "data_j.xlsx": "GitHub Raw の data/data_j.xlsx（download-jpx-xlsx.js が生成）",
-        "margin_json": "GitHub Raw の data/margin.json（margin.js が生成）",
+        "data_j.xlsx": "GitHub Raw の data/data_j.xlsx（scripts/download-jpx-xlsx.js が生成）",
+        "margin_json": "GitHub Raw の data/margin.json（scripts/margin.js が生成）",
         "heuristics_json": "GitHub Raw の data/heuristics/YYYYMM/heuristics_YYYYMMDD.json を RAW_HEURISTICS_PREFIX + YYYYMM/heuristics_YYYYMMDD.json で取得（Token 認証付き）"
       },
       "endpoints": {
@@ -395,17 +395,17 @@
       ]
     },
     "jpx_xlsx": {
-      "file": "download-jpx-xlsx.js",
+      "file": "scripts/download-jpx-xlsx.js",
       "responsibility": "JPX data_j.xls を取得し、LibreOffice で XLSX に変換 + バックアップ管理",
       "output": "data/data_j.xlsx"
     },
     "fetch": {
-      "file": "fetch.js",
+      "file": "scripts/fetch.js",
       "responsibility": "data/data_j.xlsx から銘柄コードを読み取り、Yahoo Finance から直近10日分の OHLCV を取得して data.json を生成",
       "output": "data/data.json"
     },
     "margin": {
-      "file": "margin.js",
+      "file": "scripts/margin.js",
       "responsibility": "JSF + 楽天規制 + JPX週次 + JPX日々公表 → margin.json 統合",
       "output": "data/margin.json"
     }
@@ -432,8 +432,8 @@
   "dataFlow": {
     "chartData": "chart-data.js → fetchChartData → API /chart → candleData → chart-main.js → 各チャート描画",
     "screening": "screening.js → API /screening → テーブル表示 → 行クリックで chart-main.js を呼び出し",
-    "margin": "margin.js → margin.json（信用取引可否データ）",
-    "jpx": "download-jpx-xlsx.js → data_j.xlsx → fetch.js → data.json",
-    "heuristics": "heuristics.js → heuristics_conditions.js → heuristics_YYYYMMDD.json → main.py /screening?mode=heuristics → screening.js → テーブル表示"
+    "margin": "scripts/margin.js → margin.json（信用取引可否データ）",
+    "jpx": "scripts/download-jpx-xlsx.js → data_j.xlsx → scripts/fetch.js → data.json",
+    "heuristics": "scripts/heuristics.js → scripts/heuristics_conditions.js → heuristics_YYYYMMDD.json → main.py /screening?mode=heuristics → screening.js → テーブル表示"
   }
 }
