@@ -41,6 +41,7 @@
           "baseUrl": "https://yfinance-api-fe86988c-d3b4-f1c6-640d.onrender.com",
           "endpoints": {
             "dates": "GET /dates（降順の日付リスト）",
+            "heuristics_dates": "GET /heuristics_dates（heuristics_YYYYMMDD.json の日付一覧）",
             "screening": {
               "path": "GET /screening",
               "modes": {
@@ -63,7 +64,18 @@
                     "mode=heuristics",
                     "target_date=<yyyymmdd?>"
                   ],
-                  "responsibility": "GitHub API で heuristics フォルダを探索し、target_date 指定時は heuristics_YYYYMMDD.json、未指定時は最新 heuristics_YYYYMMDD.json を返却する"
+                  "responsibility": "バックエンドが GitHub API で heuristics フォルダを探索し、target_date 指定時は heuristics_YYYYMMDD.json、未指定時は最新 heuristics_YYYYMMDD.json を取得し、配列形式 + target_date を返却する",
+                  "outputFormat": {
+                    "target_date": "YYYYMMDD",
+                    "data": [
+                      {
+                        "コード": "string",
+                        "銘柄名": "string",
+                        "TECH_*": "判定結果（true/false または null）",
+                        "Rule9_*": "Rule9 判定結果（必要に応じて）"
+                      }
+                    ]
+                  }
                 }
               }
             }
@@ -100,7 +112,9 @@
               ]
             },
             "heuristics": {
-              "controls": [],
+              "controls": [
+                "#heuristicsDateSelect"
+              ],
               "tableColumns": [
                 "コード",
                 "銘柄名",
@@ -116,12 +130,13 @@
             "tbody": "#resultTable tbody",
             "dateSelect": "#dateSelect",
             "ratioDateSelect": "#ratioDateSelect",
+            "heuristicsDateSelect": "#heuristicsDateSelect",
             "loadingOverlay": "#loadingOverlay",
             "resultCount": "#resultCount"
           }
         },
         "behavior": {
-          "init": "window.onload で initSearchMode と loadDates を実行",
+          "init": "window.onload で initSearchMode と loadDates と loadHeuristicsDates を実行",
           "modeSwitch": "searchMode ラジオボタンで ratio/date/heuristics の入力有効・無効を切り替え",
           "startScreening": "入力検証 → テーブルヘッダ更新 → 経過時間カウンタ開始 → /screening 呼び出し → showResults",
           "cancelScreening": "AbortController.abort() で fetch を中断",
@@ -152,7 +167,11 @@
           "calcBB": {
             "period": 20,
             "sigma": 2,
-            "output": ["mid", "upper", "lower"],
+            "output": [
+              "mid",
+              "upper",
+              "lower"
+            ],
             "usedBy": "chart-price.js"
           },
           "calcRCI": {
@@ -168,7 +187,11 @@
             "shortPeriod": 12,
             "longPeriod": 26,
             "signalPeriod": 9,
-            "output": ["macdData", "signalData", "histData"],
+            "output": [
+              "macdData",
+              "signalData",
+              "histData"
+            ],
             "usedBy": "chart-macd.js"
           }
         }
@@ -179,7 +202,10 @@
         "api": {
           "endpoint": "/chart",
           "baseUrl": "https://yfinance-api-fe86988c-d3b4-f1c6-640d.onrender.com",
-          "queryParams": ["ticker", "timeframe"]
+          "queryParams": [
+            "ticker",
+            "timeframe"
+          ]
         },
         "input": {
           "ticker": "例: '7203.T'",
@@ -187,7 +213,14 @@
         },
         "output": {
           "type": "candleData[]",
-          "fields": ["time(UNIX秒)", "open", "high", "low", "close", "volume"]
+          "fields": [
+            "time(UNIX秒)",
+            "open",
+            "high",
+            "low",
+            "close",
+            "volume"
+          ]
         },
         "behavior": {
           "sort": "日付キー（YYYY-MM-DD）を昇順ソート",
@@ -248,7 +281,9 @@
           "modes": {
             "ratio": {
               "responsibility": "出来高倍率 × 上髭実体比スクリーニング",
-              "required": ["target_date"],
+              "required": [
+                "target_date"
+              ],
               "calculations": [
                 "出来高倍率 = today.v / prev.v",
                 "上髭実体比 = (high - max(open, close)) / abs(close - open)"
@@ -257,25 +292,39 @@
             },
             "date_ranking": {
               "responsibility": "値上がり率ランキング",
-              "required": ["target_date"],
+              "required": [
+                "target_date"
+              ],
               "calculations": [
                 "値上がり率 = (today_close - prev_close) / prev_close * 100"
               ],
               "output": "値上がり率降順トップ100"
             },
             "heuristics": {
-              "responsibility": "GitHub API を利用して heuristics フォルダを探索し、target_date 指定時は heuristics_YYYYMMDD.json、未指定時は最新 heuristics_YYYYMMDD.json を返却する",
+              "responsibility": "GitHub API を利用して heuristics_YYYYMMDD.json を取得し、ticker_list から銘柄名を付与した配列形式 + target_date を返却する",
               "parameters": {
                 "target_date": "任意（YYYYMMDD）。指定時は該当 heuristics_YYYYMMDD.json を返却。未指定時は最新ファイルを返却。"
               },
               "logic": [
                 "API_ROOT_HEURISTICS = https://api.github.com/repos/<USER>/<REPO>/contents/data/heuristics",
                 "target_date 指定時：YYYYMM フォルダ → heuristics_YYYYMMDD.json を検索 → download_url で取得",
-                "target_date 無指定時：最新 YYYYMM フォルダ → 最新 heuristics_YYYYMMDD.json を検索 → download_url で取得"
+                "target_date 無指定時：最新 YYYYMM フォルダ → 最新 heuristics_YYYYMMDD.json を検索 → download_url で取得",
+                "取得した辞書形式 {コード: TECH_*} を配列 [{コード, 銘柄名, TECH_*...}] に変換し、target_date とともに返却"
               ],
-              "output": "TECH_* 判定および Rule9 結果（全銘柄）"
+              "output": {
+                "target_date": "YYYYMMDD",
+                "data": "配列形式（各要素にコード・銘柄名・TECH_* 判定などを含む）"
+              }
             }
           }
+        },
+        "/heuristics_dates": {
+          "method": "GET",
+          "responsibility": "GitHub API を利用して data/heuristics/YYYYMM/heuristics_YYYYMMDD.json を探索し、存在する日付（YYYYMMDD）の一覧を降順で返す",
+          "output": [
+            "YYYYMMDD",
+            "..."
+          ]
         },
         "/chart": {
           "method": "GET",
@@ -380,4 +429,6 @@
     "screening": "screening.js → API /screening → テーブル表示 → 行クリックで chart-main.js を呼び出し",
     "margin": "margin.js → margin.json（信用取引可否データ）",
     "jpx": "download-jpx-xlsx.js → data_j.xlsx → fetch.js → data.json",
-    "heuristics": "heuristics.js → heuristics_conditions.js → heuristics
+    "heuristics": "heuristics.js → heuristics_conditions.js → heuristics_YYYYMMDD.json → main.py /screening?mode=heuristics → screening.js → テーブル表示"
+  }
+}
