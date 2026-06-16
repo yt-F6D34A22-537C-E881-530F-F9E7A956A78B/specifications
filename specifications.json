@@ -12,7 +12,7 @@
           "layout": "body, app-container, card の基本レイアウトと配色",
           "controls": "条件設定 UI（mode-block, mode-conditions）",
           "buttons": "primary / secondary / ghost / small ボタンのスタイル",
-          "table": "固定ヘッダ方式のテーブル構造と列幅同期",
+          "table": "固定ヘッダ方式のテーブル構造と列幅同期（table を 2 枚使用し、列幅は screening.js 側で同期）",
           "loadingOverlay": "最前面のローディング表示",
           "modal": "チャートモーダルのレイアウト・ヘッダー・ボディ",
           "timeframeSelector": "日足/週足/月足の切替 UI",
@@ -41,7 +41,7 @@
           "baseUrl": "https://yfinance-api-fe86988c-d3b4-f1c6-640d.onrender.com",
           "endpoints": {
             "dates": "GET /dates（降順の日付リスト）",
-            "heuristics_dates": "GET /heuristics_dates（heuristics_YYYYMMDD.json の日付一覧）",
+            "heuristics_dates": "GET /heuristics_dates（GitHub trees API + Token 認証で heuristics_YYYYMMDD.json の日付一覧を降順で返す）",
             "screening": {
               "path": "GET /screening",
               "modes": {
@@ -62,9 +62,9 @@
                 "heuristics": {
                   "query": [
                     "mode=heuristics",
-                    "target_date=<yyyymmdd?>"
+                    "target_date=<yyyymmdd>"
                   ],
-                  "responsibility": "バックエンドが GitHub API で heuristics フォルダを探索し、target_date 指定時は heuristics_YYYYMMDD.json、未指定時は最新 heuristics_YYYYMMDD.json を取得し、配列形式 + target_date を返却する",
+                  "responsibility": "バックエンドが GitHub Raw（RAW_HEURISTICS_PREFIX + YYYYMM/heuristics_YYYYMMDD.json）を Token 認証付きで取得し、配列形式 + target_date を返却する",
                   "outputFormat": {
                     "target_date": "YYYYMMDD",
                     "data": [
@@ -137,11 +137,12 @@
         "behavior": {
           "init": "window.onload で initSearchMode と loadDates と loadHeuristicsDates を実行",
           "modeSwitch": "searchMode ラジオボタンで ratio/date/heuristics の入力有効・無効を切り替え",
-          "startScreening": "入力検証 → テーブルヘッダ更新 → 経過時間カウンタ開始 → /screening 呼び出し → showResults",
+          "startScreening": "入力検証 → テーブルヘッダ更新 → 経過時間カウンタ開始 → /screening 呼び出し → showResults → 列幅同期",
           "cancelScreening": "AbortController.abort() で fetch を中断",
           "sorting": "固定ヘッダの th[data-sort-key] クリックで currentResults を昇順/降順ソート",
           "rowClick": "行クリックで openChartModal(コード, 銘柄名, index) を呼び出し",
-          "resultSharing": "window.setScreeningResults が関数なら、結果配列を渡して呼び出す"
+          "resultSharing": "window.setScreeningResults が関数なら、結果配列を渡して呼び出す",
+          "fixedHeader": "table-header-sticky と table-scroll-outer の scrollLeft を双方向同期し、列幅は tbody の最初の行の実測幅で th/td を同期する"
         }
       },
       "chartIndicators": {
@@ -264,11 +265,16 @@
         "allow_methods": "*",
         "allow_headers": "*"
       },
+      "githubToken": {
+        "envVar": "GITHUB_TOKEN",
+        "responsibility": "GitHub API（trees API / Raw heuristics JSON）への Authorization: token <PAT> 付与による rate limit 拡張（60 → 5000）",
+        "security": "main.py にベタ書きせず、Render の環境変数から os.getenv('GITHUB_TOKEN') で取得する"
+      },
       "dataSources": {
         "data_json": "GitHub Raw の data/data.json（fetch.js が生成）",
         "data_j.xlsx": "GitHub Raw の data/data_j.xlsx（download-jpx-xlsx.js が生成）",
         "margin_json": "GitHub Raw の data/margin.json（margin.js が生成）",
-        "heuristics_json": "GitHub API で data/heuristics/YYYYMM/heuristics_YYYYMMDD.json を探索し、download_url 経由で取得（heuristics.js が生成）"
+        "heuristics_json": "GitHub Raw の data/heuristics/YYYYMM/heuristics_YYYYMMDD.json を RAW_HEURISTICS_PREFIX + YYYYMM/heuristics_YYYYMMDD.json で取得（Token 認証付き）"
       },
       "endpoints": {
         "/dates": {
@@ -277,7 +283,7 @@
         },
         "/heuristics_dates": {
           "method": "GET",
-          "responsibility": "GitHub API を利用して data/heuristics/YYYYMM/heuristics_YYYYMMDD.json を探索し、存在する日付（YYYYMMDD）の一覧を降順で返す",
+          "responsibility": "GitHub trees API（GIT_TREE_API + Token 認証）を利用して data/heuristics/YYYYMM/heuristics_YYYYMMDD.json を探索し、存在する日付（YYYYMMDD）の一覧を降順で返す",
           "output": [
             "YYYYMMDD",
             "..."
@@ -308,14 +314,14 @@
               "output": "値上がり率降順トップ100"
             },
             "heuristics": {
-              "responsibility": "GitHub API を利用して heuristics_YYYYMMDD.json を取得し、ticker_list から銘柄名を付与した配列形式 + target_date を返却する",
+              "responsibility": "GitHub Raw（RAW_HEURISTICS_PREFIX + YYYYMM/heuristics_YYYYMMDD.json）を Token 認証付きで取得し、ticker_list から銘柄名を付与した配列形式 + target_date を返却する",
               "parameters": {
-                "target_date": "任意（YYYYMMDD）。指定時は該当 heuristics_YYYYMMDD.json を返却。未指定時は最新ファイルを返却。"
+                "target_date": "必須（YYYYMMDD）。YYYYMM を切り出して対象フォルダを決定し、heuristics_YYYYMMDD.json を取得する。"
               },
               "logic": [
-                "API_ROOT_HEURISTICS = https://api.github.com/repos/<USER>/<REPO>/contents/data/heuristics",
-                "target_date 指定時：YYYYMM フォルダ → heuristics_YYYYMMDD.json を検索 → download_url で取得",
-                "target_date 無指定時：最新 YYYYMM フォルダ → 最新 heuristics_YYYYMMDD.json を検索 → download_url で取得",
+                "yyyymm = target_date[:6]",
+                "raw_url = RAW_HEURISTICS_PREFIX + yyyymm + '/heuristics_' + target_date + '.json'",
+                "requests.get(raw_url, headers=github_headers()) で JSON を取得",
                 "取得した辞書形式 {コード: TECH_*} を配列 [{コード, 銘柄名, TECH_*...}] に変換し、target_date とともに返却"
               ],
               "output": {
