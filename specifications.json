@@ -208,7 +208,7 @@
           ]
         },
         "input": {
-          "ticker": "例: '7203.T'",
+          "ticker": "例: '7203' → API 内部で '7203.T' に変換",
           "timeframe": "例: '1d', '1wk', '1mo'"
         },
         "output": {
@@ -333,7 +333,7 @@
         },
         "/chart": {
           "method": "GET",
-          "responsibility": "日足6000日から 1d / 1wk / 1mo の OHLCV を生成して返す",
+          "responsibility": "tickerを受け取り、内部で 'ticker.T' に変換して Yahoo Finance API から日足6000日を取得し、1d / 1wk / 1mo の OHLCV を生成して返す",
           "timeframes": {
             "1d": "日足の直近200本",
             "1wk": "週足（W-FRI）の直近200本",
