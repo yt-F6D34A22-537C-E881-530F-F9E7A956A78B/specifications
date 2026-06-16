@@ -71,8 +71,7 @@
                       {
                         "コード": "string",
                         "銘柄名": "string",
-                        "TECH_*": "判定結果（true/false または null）",
-                        "Rule9_*": "Rule9 判定結果（必要に応じて）"
+                        "TECH_*": "MA系・酒田五法・三尊・W底・N大・ものわかれ・Rule9 を含む全てのテクニカル判定結果（true/false またはオブジェクト）"
                       }
                     ]
                   }
@@ -276,6 +275,14 @@
           "method": "GET",
           "responsibility": "全銘柄の全日付キー（YYYYMMDD）を抽出し、降順で返す"
         },
+        "/heuristics_dates": {
+          "method": "GET",
+          "responsibility": "GitHub API を利用して data/heuristics/YYYYMM/heuristics_YYYYMMDD.json を探索し、存在する日付（YYYYMMDD）の一覧を降順で返す",
+          "output": [
+            "YYYYMMDD",
+            "..."
+          ]
+        },
         "/screening": {
           "method": "GET",
           "modes": {
@@ -317,14 +324,6 @@
               }
             }
           }
-        },
-        "/heuristics_dates": {
-          "method": "GET",
-          "responsibility": "GitHub API を利用して data/heuristics/YYYYMM/heuristics_YYYYMMDD.json を探索し、存在する日付（YYYYMMDD）の一覧を降順で返す",
-          "output": [
-            "YYYYMMDD",
-            "..."
-          ]
         },
         "/chart": {
           "method": "GET",
