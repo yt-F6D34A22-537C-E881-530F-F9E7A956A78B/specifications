@@ -142,7 +142,7 @@
           "sorting": "固定ヘッダの th[data-sort-key] クリックで currentResults を昇順/降順ソート",
           "rowClick": "行クリックで openChartModal(コード, 銘柄名, index) を呼び出し",
           "resultSharing": "window.setScreeningResults が関数なら、結果配列を渡して呼び出す",
-          "fixedHeader": "table-header-sticky と table-scroll-outer の scrollLeft を双方向同期し、列幅は tbody の最初の行の実測幅で th/td を同期する"
+          "fixedHeader": "table-header-sticky と table-scroll-outer の scrollLeft を双方向同期し、列幅は body 側 thead の th 実測幅で sticky 側 thead を同期し、fixed-col は syncFixedColumns で left を再計算する"
         }
       },
       "chartIndicators": {
