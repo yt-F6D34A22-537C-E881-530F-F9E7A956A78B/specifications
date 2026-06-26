@@ -10,7 +10,7 @@
         "responsibility": "アプリ全体のレイアウト・配色・モーダル・テーブル・チャート領域・レスポンシブ対応を定義する",
         "sections": {
           "layout": "body, app-container, card の基本レイアウトと配色",
-          "controls": "条件設定 UI（mode-block, mode-conditions）",
+          "controls": "条件設定 UI（controls-grid / controls-grid-heuristics / mode-block / mode-block-heuristics / mode-conditions / exclude-markets-fieldset）",
           "buttons": "primary / secondary / ghost / small ボタンのスタイル",
           "table": "固定ヘッダ方式のテーブル構造と列幅同期（table を 2 枚使用し、列幅は screening.js 側で同期）",
           "loadingOverlay": "最前面のローディング表示",
@@ -18,6 +18,7 @@
           "timeframeSelector": "日足/週足/月足の切替 UI",
           "chartSettings": "チャート設定ポップアップ",
           "chartLegend": "チャート凡例の位置・背景・影",
+          "heuristicsTable": "heuristics テーブルのトレンド色分け（th-bg-trend-up / th-bg-trend-down / th-bg-trend-either）・行背景（tr-trend-up / tr-trend-down）・適用ルールハイライト（td-heuristics-applied）",
           "responsive": "600px 以下での UI 最適化"
         }
       }
@@ -62,18 +63,17 @@
                 "heuristics": {
                   "query": [
                     "mode=heuristics",
-                    "target_date=<yyyymmdd>"
+                    "target_date=<yyyymmdd>",
+                    "exclude_markets=<カンマ区切りの市場・商品区分>（省略可）"
                   ],
-                  "responsibility": "バックエンドが GitHub Raw（RAW_HEURISTICS_PREFIX + YYYYMM/heuristics_YYYYMMDD.json）を Token 認証付きで取得し、配列形式 + target_date を返却する",
+                  "responsibility": "バックエンドが GitHub Raw（RAW_HEURISTICS_PREFIX + YYYYMM/heuristics_YYYYMMDD.json）を Token 認証付きで取得し、スコア計算・除外フィルタを適用した上位20件ずつを返却する",
                   "outputFormat": {
+                    "status": "ok",
                     "target_date": "YYYYMMDD",
-                    "data": [
-                      {
-                        "コード": "string",
-                        "銘柄名": "string",
-                        "TECH_*": "MA系・酒田五法・三尊・W底・N大・ものわかれ・Rule9 を含む全てのテクニカル判定結果（true/false またはオブジェクト）"
-                      }
-                    ]
+                    "data": {
+                      "up": "アップスコア降順の上位20件。各要素にコード・銘柄名・アップスコア・ダウンスコア・applied_up_rules・applied_down_rules・TECH_* を含む",
+                      "down": "ダウンスコア降順の上位20件。各要素にコード・銘柄名・アップスコア・ダウンスコア・applied_up_rules・applied_down_rules・TECH_* を含む"
+                    }
                   }
                 }
               }
@@ -112,14 +112,48 @@
             },
             "heuristics": {
               "controls": [
-                "#heuristicsDateSelect"
+                "#heuristicsDateSelect",
+                "#heuristicsConditions fieldset（除外する市場・商品区分のチェックボックス群）"
               ],
               "tableColumns": [
                 "コード",
                 "銘柄名",
+                "トレンド（up/down を ↗/↘ で表示）",
+                "スコア",
                 "TECH_* 判定（全項目）"
-              ]
+              ],
+              "excludeMarkets": {
+                "element": ".exclude-market-checkbox",
+                "fieldset": "#heuristicsConditions fieldset",
+                "defaultChecked": ["ETF・ETN"],
+                "values": [
+                  "ETF・ETN",
+                  "PRO Market",
+                  "REIT・ベンチャーファンド・カントリーファンド・インフラファンド",
+                  "出資証券",
+                  "グロース（内国株式）",
+                  "グロース（外国株式）",
+                  "スタンダード（内国株式）",
+                  "スタンダード（外国株式）",
+                  "プライム（内国株式）",
+                  "プライム（外国株式）"
+                ],
+                "disableMethod": "fieldset.disabled プロパティで fieldset 単位で有効・無効を切り替える",
+                "behavior": "heuristics モード選択時のみ有効化。チェックされた値をカンマ区切りで exclude_markets パラメータとして送信する"
+              },
+              "resultMerge": "data.data.up / data.data.down をそれぞれ トレンド・スコア キーを付与した上でマージして results 配列を生成する",
+              "tableRowStyling": "トレンドが up の行に tr-trend-up、down の行に tr-trend-down クラスを付与する",
+              "cellHighlight": "applied_up_rules（up行）または applied_down_rules（down行）に含まれる TECH_* キーに対応する td に td-heuristics-applied クラスを付与してハイライト表示する"
             }
+          },
+          "heuristicsTypes": {
+            "description": "HEURISTICS_TYPES 配列で各テクニカル指標グループを定義する",
+            "fields": {
+              "group_label": "グループ名（ヘッダ1行目に表示）",
+              "trend_direction_css": "グループヘッダの背景色クラス（th-bg-trend-up / th-bg-trend-down / th-bg-trend-either）。省略可",
+              "items": "グループ内の各指標。key（TECH_* キー名）・label（ヘッダ2行目）・trend_direction_css（item個別の色クラス、省略可）を持つ"
+            },
+            "headerRendering": "itemCount > 1 の場合は colspan でグループヘッダを結合。item が1件かつ group_label === item.label の場合は rowspan=2 で1行に収める。それ以外は上段にグループ名・下段にitem.label を分けて表示する"
           },
           "elements": {
             "startBtn": "#startBtn",
@@ -131,18 +165,21 @@
             "ratioDateSelect": "#ratioDateSelect",
             "heuristicsDateSelect": "#heuristicsDateSelect",
             "loadingOverlay": "#loadingOverlay",
-            "resultCount": "#resultCount"
+            "resultCount": "#resultCount",
+            "resultSection": "#resultSection（スクリーニング完了後のスクロール対象）"
           }
         },
         "behavior": {
           "init": "window.onload で initSearchMode と loadDates と loadHeuristicsDates を実行",
-          "modeSwitch": "searchMode ラジオボタンで ratio/date/heuristics の入力有効・無効を切り替え",
-          "startScreening": "入力検証 → テーブルヘッダ更新 → 経過時間カウンタ開始 → /screening 呼び出し → showResults → 列幅同期",
+          "modeSwitch": "searchMode ラジオボタンで ratio/date/heuristics の入力有効・無効を切り替え。heuristics モード時は #heuristicsConditions fieldset を fieldset.disabled で有効化する",
+          "startScreening": "入力検証 → テーブルヘッダ更新 → 経過時間カウンタ開始 → /screening 呼び出し → showResults → 列幅同期 → #resultSection へスムーズスクロール",
           "cancelScreening": "AbortController.abort() で fetch を中断",
           "sorting": "固定ヘッダの th[data-sort-key] クリックで currentResults を昇順/降順ソート",
           "rowClick": "行クリックで openChartModal(コード, 銘柄名, index) を呼び出し",
           "resultSharing": "window.setScreeningResults が関数なら、結果配列を渡して呼び出す",
-          "fixedHeader": "table-header-sticky と table-scroll-outer の scrollLeft を双方向同期し、列幅は body 側 thead の th 実測幅で sticky 側 thead を同期し、fixed-col は syncFixedColumns で left を再計算する"
+          "fixedHeader": "table-header-sticky と table-scroll-outer の scrollLeft を双方向同期し、列幅は body 側 thead の th 実測幅で sticky 側 thead を同期し、fixed-col は syncFixedColumns で left を再計算する",
+          "getExcludeMarkets": ".exclude-market-checkbox:checked の value をカンマ区切りで返す関数。heuristics モードの fetch 前に呼び出し、1件以上の場合のみ exclude_markets パラメータに設定する",
+          "loadHeuristicsDates": "全日付をそのまま option に追加する（「最新を使用」オプションなし）"
         }
       },
       "chartIndicators": {
@@ -276,6 +313,45 @@
         "margin_json": "GitHub Raw の data/margin.json（scripts/margin.js が生成）",
         "heuristics_json": "GitHub Raw の data/heuristics/YYYYMM/heuristics_YYYYMMDD.json を RAW_HEURISTICS_PREFIX + YYYYMM/heuristics_YYYYMMDD.json で取得（Token 認証付き）"
       },
+      "modules": {
+        "heuristics_scoring": {
+          "file": "app/heuristics_scoring.py",
+          "responsibility": "1銘柄分の tech データを受け取り、ダウンスコア・アップスコアおよび加点が発生したルールキー一覧を計算して返す",
+          "function": "calc_heuristics_score(tech: dict) -> dict",
+          "output": {
+            "down": "ダウンスコア合計（int）",
+            "up": "アップスコア合計（int）",
+            "applied_down_rules": "ダウンスコアが加算された TECH_* キーのリスト",
+            "applied_up_rules": "アップスコアが加算された TECH_* キーのリスト"
+          },
+          "dependsOn": "app/heuristics_scoring_rules.py"
+        },
+        "heuristics_scoring_rules": {
+          "file": "app/heuristics_scoring_rules.py",
+          "responsibility": "TECH_* キーごとのスコアルール定義（HEURISTICS_SCORING_RULES）",
+          "structure": {
+            "types": [
+              "str_map（\"down\"/\"flat\"/\"up\" の文字列値に対してスコアを定義）",
+              "bool（true/false に対してスコアを定義）",
+              "int_val（数値 × multiplier でスコアを加算）",
+              "int_threshold（値が threshold 以上のとき固定スコアを加算）",
+              "dict_direction（direction キーの値に対してスコアを定義、count_threshold/count_bonus をオプションで持つ）",
+              "dict_trycount（tryCount が threshold 以上のとき固定スコアを加算）"
+            ],
+            "scoreKeys": [
+              "down（ダウントレンド用スコア）",
+              "up（アップトレンド用スコア）"
+            ],
+            "policy": "加点が必要なキー・値のみを定義し、0点の場合は省略する。定義のないキーは 0 として扱う"
+          }
+        }
+      },
+      "utilities": {
+        "parse_exclude_markets": {
+          "signature": "parse_exclude_markets(exclude_markets: str) -> set",
+          "responsibility": "カンマ区切りの除外市場文字列を set に変換する。空文字・None の場合は空 set を返す"
+        }
+      },
       "endpoints": {
         "/dates": {
           "method": "GET",
@@ -314,19 +390,27 @@
               "output": "値上がり率降順トップ100"
             },
             "heuristics": {
-              "responsibility": "GitHub Raw（RAW_HEURISTICS_PREFIX + YYYYMM/heuristics_YYYYMMDD.json）を Token 認証付きで取得し、ticker_list から銘柄名を付与した配列形式 + target_date を返却する",
+              "responsibility": "GitHub Raw から heuristics JSON を取得し、スコア計算・除外フィルタを適用して上位20件ずつ返却する",
               "parameters": {
-                "target_date": "必須（YYYYMMDD）。YYYYMM を切り出して対象フォルダを決定し、heuristics_YYYYMMDD.json を取得する。"
+                "target_date": "必須（YYYYMMDD）",
+                "exclude_markets": "省略可。カンマ区切りの市場・商品区分文字列。ticker_list の「市場・商品区分」列と照合し、一致する銘柄を除外する"
               },
               "logic": [
                 "yyyymm = target_date[:6]",
                 "raw_url = RAW_HEURISTICS_PREFIX + yyyymm + '/heuristics_' + target_date + '.json'",
                 "requests.get(raw_url, headers=github_headers()) で JSON を取得",
-                "取得した辞書形式 {コード: TECH_*} を配列 [{コード, 銘柄名, TECH_*...}] に変換し、target_date とともに返却"
+                "ticker_list から ticker_row を1回で取得し、銘柄名と市場・商品区分を参照する",
+                "exclude_set に含まれる市場・商品区分の銘柄をスキップ",
+                "calc_heuristics_score(tech) でスコアを計算し、アップスコア・ダウンスコア・applied_up_rules・applied_down_rules をレスポンスに含める",
+                "アップスコア降順で上位20件・ダウンスコア降順で上位20件を返却"
               ],
               "output": {
+                "status": "ok",
                 "target_date": "YYYYMMDD",
-                "data": "配列形式（各要素にコード・銘柄名・TECH_* 判定などを含む）"
+                "data": {
+                  "up": "アップスコア降順の上位20件（各要素にコード・銘柄名・アップスコア・ダウンスコア・applied_up_rules・applied_down_rules・TECH_* を含む）",
+                  "down": "ダウンスコア降順の上位20件（各要素にコード・銘柄名・アップスコア・ダウンスコア・applied_up_rules・applied_down_rules・TECH_* を含む）"
+                }
               }
             }
           }
@@ -434,6 +518,6 @@
     "screening": "screening.js → API /screening → テーブル表示 → 行クリックで chart-main.js を呼び出し",
     "margin": "scripts/margin.js → margin.json（信用取引可否データ）",
     "jpx": "scripts/download-jpx-xlsx.js → data_j.xlsx → scripts/fetch.js → data.json",
-    "heuristics": "scripts/heuristics.js → scripts/heuristics_conditions.js → heuristics_YYYYMMDD.json → main.py /screening?mode=heuristics → screening.js → テーブル表示"
+    "heuristics": "scripts/heuristics.js → scripts/heuristics_conditions.js → heuristics_YYYYMMDD.json → main.py /screening?mode=heuristics → app/heuristics_scoring_rules.py → app/heuristics_scoring.py（applied_*_rules を含むスコアを返却）→ screening.js（ tr-trend-up/down・td-heuristics-applied でハイライト表示）"
   }
 }
