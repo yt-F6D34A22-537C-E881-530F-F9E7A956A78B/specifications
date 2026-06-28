@@ -554,28 +554,168 @@
     "jpx_xlsx": {
       "file": "scripts/download-jpx-xlsx.js",
       "responsibility": "JPX data_j.xls を取得し、LibreOffice で XLSX に変換 + バックアップ管理",
-      "output": "data/data_j.xlsx"
+      "dependencies": ["node-fetch@3", "jsdom"],
+      "systemDependencies": ["libreoffice（apt-get）"],
+      "steps": {
+        "1_getXlsUrl": "JPX 公式ページ（statistics-equities/misc/01.html）をスクレイピングして data_j.xls の URL を取得する",
+        "2_downloadXls": "取得した URL から data/data_j.xls をダウンロード",
+        "3_convertToXlsx": "libreoffice --headless --convert-to xlsx で data/data_j.xls → data/data_j.xlsx に変換",
+        "4_backup": "data/backup/ に data_j.xls.TIMESTAMP・data_j.xlsx.TIMESTAMP を作成（タイムスタンプは JST）",
+        "5_cleanup": "data/backup/ 内の data_j.xls.* / data_j.xlsx.* のうち 3日超過分を削除"
+      },
+      "backup": {
+        "directory": "data/backup",
+        "fileFormat": "data_j.xls.YYYYMMDD_hhmmss / data_j.xlsx.YYYYMMDD_hhmmss",
+        "retention": "3日超過分を削除（3日以内を保持）",
+        "timestampZone": "JST"
+      },
+      "output": {
+        "primary": "data/data_j.xlsx",
+        "intermediate": "data/data_j.xls（LibreOffice 変換後に残存）"
+      }
     },
     "fetch": {
       "file": "scripts/fetch.js",
       "responsibility": "data/data_j.xlsx から銘柄コードを読み取り、Yahoo Finance から直近10日分の OHLCV を取得して data.json を生成",
+      "dependencies": ["node-fetch@3", "xlsx"],
+      "steps": {
+        "1_readSymbols": "data/data_j.xlsx の Sheet1 の「コード」列から銘柄コードを読み取る（undefined・空白を除外）",
+        "2_fetchYahoo": "Yahoo Finance API（query1.finance.yahoo.com/v8/finance/chart/{code}.T?interval=1d&range=10d）から直近10日分の OHLCV を取得する。各銘柄間に 500ms の遅延を挟む",
+        "3_writeJson": "全銘柄のデータを data/data.json に洗い替え書き込み（JSON.stringify、indent 2）",
+        "4_backup": "data/backup/ に data.json.TIMESTAMP を作成（タイムスタンプは JST）",
+        "5_cleanup": "data/backup/ 内の data.json.* を古い順にソートし、最大 8 個を超えた分を削除"
+      },
+      "yahooApi": {
+        "urlTemplate": "https://query1.finance.yahoo.com/v8/finance/chart/{code}.T?interval=1d&range=10d",
+        "tickerSuffix": ".T",
+        "range": "10d",
+        "interval": "1d"
+      },
+      "outputFormat": {
+        "key": "銘柄コード（4桁文字列）",
+        "value": {
+          "YYYYMMDD": {
+            "o": "始値",
+            "h": "高値",
+            "l": "安値",
+            "c": "終値",
+            "v": "出来高"
+          },
+          "error": "取得失敗時のエラーメッセージ文字列"
+        }
+      },
+      "backup": {
+        "directory": "data/backup",
+        "fileFormat": "data.json.YYYYMMDD_hhmmss",
+        "keep": 8,
+        "timestampZone": "JST"
+      },
       "output": "data/data.json"
     },
     "margin": {
       "file": "scripts/margin.js",
       "responsibility": "JSF + 楽天規制 + JPX週次 + JPX日々公表 → margin.json 統合",
+      "dependencies": ["node-fetch@3", "xlsx", "jsdom", "pdfjs-dist", "iconv-lite"],
+      "dataSources": {
+        "kubunMap": {
+          "url": "https://www.taisyaku.jp/data/meigara.csv",
+          "encoding": "Shift_JIS",
+          "format": "CSV（1行目タイトル / 2行目ヘッダ / 3行目以降データ）",
+          "key": "コード列（4桁、NFKC正規化）",
+          "value": "貸借銘柄区分（東証）列",
+          "filter": "貸借区分が '0' または取得不可の銘柄は margin.json に出力しない"
+        },
+        "rakutenRegulation": {
+          "url": "https://www.rakuten-sec.co.jp/ITS/Companyfile/margin_restriction.html",
+          "encoding": "EUC-JP",
+          "tableLogic": "rowspan 対応（6列論理配列に展開）。logical[0]=コード / logical[2]=市場 / logical[3]=規制文言",
+          "marketFilter": "TOKYO_KEYWORDS=['東京'] で東証銘柄のみ抽出",
+          "buyBanKeywords": ["新規買停止", "全取引停止"],
+          "sellBanKeywords": ["新規売停止", "全取引停止"]
+        },
+        "jpxWeekly": {
+          "indexUrl": "https://www.jpx.co.jp/markets/statistics-equities/margin/05.html",
+          "filePattern": "syumatsu を含む .pdf リンクの最新ファイル",
+          "parser": "pdfjs-dist で全ページテキスト抽出 → [0-9A-Z]{4}0\\s+JP\\d{10} のブロック分割",
+          "codeExtract": "5桁コード（例: 72030）の先頭4桁をNFKC正規化して使用",
+          "fields": ["buy（買残高）", "buy_diff（前週比）", "sell（売残高）", "sell_diff（前週比）", "ratio（倍率 = buy/sell、小数点2桁）"]
+        },
+        "jpxDaily": {
+          "indexUrl": "https://www.jpx.co.jp/markets/statistics-equities/margin/index.html",
+          "filePattern": "mtdailyk を含む最新 .xls ファイル",
+          "parser": "xlsx ライブラリ（range: 5 でヘッダ行スキップ）",
+          "codeExtract": "[0-9A-Z]{4}0 形式の先頭4桁をNFKC正規化して使用",
+          "fields": ["sell（売残高 Outstanding Sales）", "buy（買残高 Outstanding Purchases）"]
+        }
+      },
+      "mergeLogic": {
+        "applyDailyToWeekly": "jpxDaily の buy/sell で jpxWeekly の値を上書きし、前週比（buy_diff / sell_diff）を再計算する。週次に存在しない銘柄は buy_diff/sell_diff を null で追加する"
+      },
+      "outputSchema": {
+        "key": "銘柄コード（4桁、NFKC正規化、コード昇順にソート）",
+        "value": {
+          "貸借区分": "kubunMap の値（'0' 除外済み）",
+          "制度信用": {
+            "買い建て": "buyBanKeywords に該当しない場合 true",
+            "売り建て": "貸借区分='1' かつ sellBanKeywords に該当しない場合 true"
+          },
+          "JPX信用買残": "null or number",
+          "JPX信用買残前週比": "null or number",
+          "JPX信用売残": "null or number",
+          "JPX信用売残前週比": "null or number",
+          "JPX信用倍率": "null or number（小数点2桁）",
+          "規制": "楽天規制ページの規制文言の配列"
+        }
+      },
+      "backup": {
+        "directory": "data/backup",
+        "fileFormat": "margin.json.YYYYMMDD_hhmmss",
+        "retention": "3日超過分を削除（3日以内を保持）",
+        "timestampZone": "JST"
+      },
       "output": "data/margin.json"
     }
   },
   "workflows": {
     "download-jpx-xlsx.yml": {
-      "responsibility": "JPX data_j.xls の取得・XLSX変換・バックアップ"
+      "responsibility": "JPX data_j.xls の取得・XLSX変換・バックアップ",
+      "schedule": [
+        "7 18 * * *（JST 03:07）"
+      ],
+      "nodeVersion": "24",
+      "dependencies": "node-fetch@3 xlsx jsdom pdf-parse（npm install --no-save）",
+      "systemDependencies": "libreoffice（apt-get install -y libreoffice）",
+      "concurrency": "group: auto-update / cancel-in-progress: false（複数ワークフローの同時実行禁止）",
+      "permissions": "contents: write",
+      "pushStrategy": "git push 失敗時は fetch → rebase → push でリトライ",
+      "outputs": ["data/data_j.xlsx", "data/backup/"]
     },
     "fetch.yml": {
-      "responsibility": "Yahoo Finance から data.json を更新"
+      "responsibility": "Yahoo Finance から data.json を更新",
+      "schedule": [
+        "7 22 * * *（JST 07:07（前日UTC））",
+        "7 7 * * *（JST 16:07）",
+        "7 9 * * *（JST 18:07）",
+        "7 11 * * *（JST 20:07）"
+      ],
+      "nodeVersion": "24",
+      "dependencies": "node-fetch@3 xlsx（npm install --no-save）",
+      "concurrency": "group: auto-update / cancel-in-progress: false（複数ワークフローの同時実行禁止）",
+      "permissions": "contents: write",
+      "pushStrategy": "git push 失敗時は fetch → rebase → push でリトライ",
+      "outputs": ["data/data.json", "data/backup/"]
     },
     "margin.yml": {
-      "responsibility": "margin.json の自動更新"
+      "responsibility": "margin.json の自動更新",
+      "schedule": [
+        "7 18 * * *（JST 03:07）"
+      ],
+      "nodeVersion": "24",
+      "dependencies": "node-fetch@3 xlsx jsdom pdfjs-dist iconv-lite（npm install --no-save）",
+      "concurrency": "group: auto-update / cancel-in-progress: false（複数ワークフローの同時実行禁止）",
+      "permissions": "contents: write",
+      "pushStrategy": "git push 失敗時は fetch → rebase → push でリトライ",
+      "outputs": ["data/margin.json", "data/backup/"]
     },
     "heuristics.yml": {
       "responsibility": "全銘柄の OHLCV を取得し heuristics_YYYYMMDD.json を生成する SAFE ワークフロー",
