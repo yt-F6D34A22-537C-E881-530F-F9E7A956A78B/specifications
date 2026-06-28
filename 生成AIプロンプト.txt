@@ -17,7 +17,7 @@ https://raw.githubusercontent.com/yt-F6D34A22-537C-E881-530F-F9E7A956A78B/specif
 回答内容は必ずこの仕様と整合し、矛盾がある場合はその矛盾点を明示してください。
 
 【今回追加したい機能】
-・specification.jsonの最新化。
+・specifications.jsonの最新化。
 以下にある最新のソースコードを確認し、specification.jsonを最新化してください。
 https://raw.githubusercontent.com/yt-F6D34A22-537C-E881-530F-F9E7A956A78B/webapp-frontend/refs/heads/main/index.html
 https://raw.githubusercontent.com/yt-F6D34A22-537C-E881-530F-F9E7A956A78B/webapp-frontend/refs/heads/main/screening.js
