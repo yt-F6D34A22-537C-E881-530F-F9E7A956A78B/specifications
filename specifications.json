@@ -153,7 +153,16 @@
               "trend_direction_css": "グループヘッダの背景色クラス（th-bg-trend-up / th-bg-trend-down / th-bg-trend-either）。省略可",
               "items": "グループ内の各指標。key（TECH_* キー名）・label（ヘッダ2行目）・trend_direction_css（item個別の色クラス、省略可）を持つ"
             },
-            "headerRendering": "itemCount > 1 の場合は colspan でグループヘッダを結合。item が1件かつ group_label === item.label の場合は rowspan=2 で1行に収める。それ以外は上段にグループ名・下段にitem.label を分けて表示する"
+            "headerRendering": "itemCount > 1 の場合は colspan でグループヘッダを結合。item が1件かつ group_label === item.label の場合は rowspan=2 で1行に収める。それ以外は上段にグループ名・下段にitem.label を分けて表示する",
+            "cellRendering": {
+              "string（up/down/flat）": "formatDirectionMark() で ↗/↘/－ に変換して表示",
+              "boolean": "boolMark() で ○/× に変換して表示。boolMark は true→○、false→×、それ以外→空文字",
+              "酒田五法（1 or null）": "val が truthy なら <span class=\"tech-true\">○</span>、null なら空白",
+              "TECH_RULE9_DAILY / TECH_RULE9_WEEKLY": "{ direction, count } → formatDirectionMark(direction)＋（count 本目）形式",
+              "TECH_GRANVILLE": "{ direction, count } → formatDirectionMark(direction)＋（count）形式",
+              "TECH_FUSHIME_UP / TECH_FUSHIME_DOWN": "{ price, tryCount } → price（tryCount回）形式",
+              "TECH_CYCLE_PROGRESS": "{ direction, count, startDate, lastDate } → formatDirectionMark(direction)＋（count日）形式。null なら空白"
+            }
           },
           "elements": {
             "startBtn": "#startBtn",
@@ -333,7 +342,7 @@
             "types": [
               "str_map（\"down\"/\"flat\"/\"up\" の文字列値に対してスコアを定義）",
               "bool（true/false に対してスコアを定義）",
-              "int_val（数値 × multiplier でスコアを加算）",
+              "int_val（数値 × multiplier_up/multiplier_down でスコアを加算。酒田五法は heuristics.js で boolean → 1/null に変換されるため val=1 × multiplier=2 = 2点となる）",
               "int_threshold（値が threshold 以上のとき固定スコアを加算）",
               "dict_direction（direction キーの値に対してスコアを定義、count_threshold/count_bonus をオプションで持つ）",
               "dict_trycount（tryCount が threshold 以上のとき固定スコアを加算）"
@@ -444,6 +453,18 @@
           "monthly_min": 75,
           "log_format": "Skipping SYMBOL due to insufficient candles. { daily: X > 100 required, weekly: Y > 100 required, monthly: Z < 75 required }"
         },
+        "runAllConditions": {
+          "valueConversions": {
+            "酒田五法": "heuristics_conditions.js は boolean を返すが、runAllConditions 内で boolean ? 1 : null に変換して JSON に保存する。スコアルールの int_val 型（multiplier=2）と対応する",
+            "TECH_MA_SPREAD": "isMaSpreadUp() の戻り値（\"up\"/\"down\"）を slope ヘルパーで変換",
+            "TECH_CYCLE_PROGRESS": "computeCycleProgress() の戻り値 { direction, count, startDate, lastDate } をそのまま格納（null の場合は null）",
+            "TECH_RULE9_DAILY": "computeRule9Daily() の戻り値 { direction, count } をそのまま格納",
+            "TECH_RULE9_WEEKLY": "computeRule9Weekly() の戻り値 { direction, count } をそのまま格納",
+            "TECH_GRANVILLE": "computeGranville() の戻り値 { direction, count } をそのまま格納",
+            "TECH_FUSHIME_UP": "computeFushimeUp() の戻り値 { price, tryCount } をそのまま格納",
+            "TECH_FUSHIME_DOWN": "computeFushimeDown() の戻り値 { price, tryCount } をそのまま格納"
+          }
+        },
         "output": {
           "fileFormat": "heuristics_YYYYMMDD.json",
           "directory": "data/heuristics/YYYYMM/",
@@ -461,6 +482,11 @@
       "file": "scripts/heuristics_conditions.js",
       "responsibility": "MA系・酒田五法・三尊・W底・N大・ものわかれ・Rule9 の SAFE 判定ロジック",
       "safety": "calcMA の throw を完全排除し、全て safeCalcMA で null-safe に処理",
+      "maPeriods": {
+        "daily":   { "short": 5, "mid": 25, "long": 75 },
+        "weekly":  { "short": 5, "mid": 13, "long": 26 },
+        "monthly": { "short": 5, "mid": 12, "long": 24 }
+      },
       "rules": [
         "MA slope",
         "Perfect Order / Reverse PO",
@@ -475,8 +501,55 @@
         "Double Bottom",
         "Nichi-Dai / Gyaku-Nichi-Dai",
         "Monowakare / Cross",
-        "Rule9 Daily / Weekly（SAFE 実装）"
-      ]
+        "Rule9 Daily / Weekly（SAFE 実装）",
+        "BB Zone Break Daily / Weekly / Monthly",
+        "Box Range",
+        "Overheat",
+        "Granville",
+        "Cycle Progress",
+        "Fushime Up / Down"
+      ],
+      "returnValueTypes": {
+        "string（up/down/flat）": [
+          "TECH_MA_SLOPE_DAILY", "TECH_MA_SLOPE_WEEKLY", "TECH_MA_SLOPE_MONTHLY",
+          "TECH_MA_POSITION_DAILY", "TECH_MA_POSITION_WEEKLY", "TECH_MA_POSITION_MONTHLY",
+          "TECH_MA_SPREAD", "TECH_MA100_TREND",
+          "TECH_5MA_UPDATE",
+          "TECH_MONOWAKARE", "TECH_MONOWAKARE_RED_BLUE_CROSS"
+        ],
+        "boolean": [
+          "TECH_PERFECT_ORDER_DAILY", "TECH_PERFECT_ORDER_WEEKLY", "TECH_PERFECT_ORDER_MONTHLY",
+          "TECH_REVERSE_PERFECT_ORDER_DAILY", "TECH_REVERSE_PERFECT_ORDER_WEEKLY", "TECH_REVERSE_PERFECT_ORDER_MONTHLY",
+          "TECH_PRE_PERFECT_ORDER_DAILY", "TECH_PRE_PERFECT_ORDER_WEEKLY", "TECH_PRE_PERFECT_ORDER_MONTHLY",
+          "TECH_PRE_REVERSE_PERFECT_ORDER_DAILY", "TECH_PRE_REVERSE_PERFECT_ORDER_WEEKLY", "TECH_PRE_REVERSE_PERFECT_ORDER_MONTHLY",
+          "TECH_MA_CONGESTION",
+          "TECH_KAHANSHIN", "TECH_GYAKU_KAHANSHIN",
+          "TECH_HEAD_AND_SHOULDERS", "TECH_DOUBLE_BOTTOM",
+          "TECH_NICHI_DAI", "TECH_GYAKU_NICHI_DAI",
+          "TECH_IN_IN_HARAMI", "TECH_RED_BLUE_CROSS",
+          "TECH_RETURN_SELL_END", "TECH_DOWN_TREND_END", "TECH_MOMIAI",
+          "TECH_BB_ZONE_BREAK_DAILY", "TECH_BB_ZONE_BREAK_WEEKLY", "TECH_BB_ZONE_BREAK_MONTHLY",
+          "TECH_BOX_RANGE", "TECH_OVERHEAT"
+        ],
+        "1 or null（heuristics.js で boolean → int_val 変換済み）": [
+          "TECH_SAKATA_TRIPLE_TOP", "TECH_SAKATA_TRIPLE_BOTTOM",
+          "TECH_SAKATA_SANKU_UP", "TECH_SAKATA_SANKU_DOWN",
+          "TECH_SAKATA_SANPEI_UP", "TECH_SAKATA_SANPEI_DOWN",
+          "TECH_SAKATA_SANPO_UP", "TECH_SAKATA_SANPO_DOWN"
+        ],
+        "{ direction, count }": [
+          "TECH_RULE9_DAILY（direction: up/down/null, count: 連続本数）",
+          "TECH_RULE9_WEEKLY（同上）",
+          "TECH_GRANVILLE（direction: up/down/null, count: 法則番号 1〜3）"
+        ],
+        "{ direction, count, startDate, lastDate }": [
+          "TECH_CYCLE_PROGRESS（direction: up/down, count: サイクル起点からの経過営業日数, startDate/lastDate: YYYYMMDD）"
+        ],
+        "{ price, tryCount } or { price: null, tryCount: null }": [
+          "TECH_FUSHIME_UP（price: 節目価格, tryCount: タッチ回数）",
+          "TECH_FUSHIME_DOWN（同上）"
+        ]
+      }
     },
     "jpx_xlsx": {
       "file": "scripts/download-jpx-xlsx.js",
@@ -506,6 +579,20 @@
     },
     "heuristics.yml": {
       "responsibility": "全銘柄の OHLCV を取得し heuristics_YYYYMMDD.json を生成する SAFE ワークフロー",
+      "schedule": {
+        "active": [
+          "7 8 * * *（JST 17:07）",
+          "7 10 * * *（JST 19:07）",
+          "7 12 * * *（JST 21:07）"
+        ],
+        "commentedOut": [
+          "7 23 * * *（JST 08:07）"
+        ]
+      },
+      "nodeVersion": "24",
+      "dependencies": "node-fetch@3 xlsx（npm install --no-save）",
+      "concurrency": "group: auto-update / cancel-in-progress: false（複数ワークフローの同時実行禁止）",
+      "pushStrategy": "git push 失敗時は fetch → rebase → push でリトライ",
       "output": {
         "fileFormat": "heuristics_YYYYMMDD.json",
         "overwrite": "同名ファイルが存在する場合は上書きする",
