@@ -313,8 +313,8 @@
           "sort": "日付キー（YYYY-MM-DD）を昇順ソート",
           "convertTime": "Date → UNIX秒（ミリ秒→秒）",
           "errorHandling": [
-            "json.Close が無い場合は null を返す",
-            "fetch エラー時も null を返す"
+            "json.Close が無い場合は指数バックオフ（初回 1500ms・以降 2倍）で最大 FETCH_MAX_RETRIES（3）回リトライし、全試行失敗時に null を返す",
+            "fetch エラー時も同様にリトライし、全試行失敗時に null を返す"
           ]
         },
         "usedBy": "chart-main.js（drawChart → fetchChartData）"
