@@ -9,19 +9,20 @@
         "file": "style.css",
         "responsibility": "アプリ全体のレイアウト・配色・モーダル・テーブル・チャート領域・レスポンシブ対応を定義する",
         "sections": {
-          "layout": "body, app-container, card の基本レイアウトと配色",
-          "controls": "条件設定 UI（controls-grid / controls-grid-heuristics / mode-block / mode-block-heuristics / mode-conditions / exclude-markets-fieldset）",
-          "buttons": "primary / secondary / ghost / small ボタンのスタイル",
-          "resultSectionHeader": ".result-section-header（h2・resultCount・csvDownloadBtn を横並びにするフレックスコンテナ）と .csv-download-btn（右端配置・ホバースタイル・disabled スタイル）",
-          "table": "固定ヘッダ方式のテーブル構造と列幅同期（table を 2 枚使用し、列幅は screening.js 側で同期）",
-          "loadingOverlay": "最前面のローディング表示",
-          "modal": "チャートモーダルのレイアウト・ヘッダー・ボディ",
-          "timeframeSelector": "日足/週足/月足の切替 UI",
-          "chartSettings": "チャート設定ポップアップ",
-          "chartLegend": "チャート凡例の位置・背景・影",
-          "heuristicsTable": "heuristics テーブルのトレンド色分け（th-bg-trend-up / th-bg-trend-down / th-bg-trend-either）・行背景（tr-trend-up / tr-trend-down）・適用ルールハイライト（td-heuristics-applied）",
-          "responsive": "600px 以下での UI 最適化"
-        }
+		  "designTokens": ":root に定義する CSS カスタムプロパティ。色（--color-*）・シャドウ（--shadow-*）・ボーダー半径（--radius-*）・サイズ（--rci-macd-height 等）・z-index 体系（--z-*）をここで一元管理する。ブレークポイントは CSS カスタムプロパティがメディアクエリ条件内で使用不可のため、:root のコメント（--bp-mobile: 600px）と @media の数値を一致させる運用とする",
+		  "layout": "body, app-container, card の基本レイアウトと配色",
+		  "controls": "条件設定 UI（controls-grid / controls-grid-heuristics / mode-block / mode-block-heuristics / mode-conditions / exclude-markets-fieldset）",
+		  "buttons": "primary / secondary / ghost / small ボタンのスタイル",
+		  "resultSectionHeader": ".result-section-header（h2・resultCount・csvDownloadBtn を横並びにするフレックスコンテナ）と .csv-download-btn（右端配置・ホバースタイル・disabled スタイル）",
+		  "table": "固定ヘッダ方式のテーブル構造と列幅同期（table を 2 枚使用し、列幅は screening.js 側で同期）。.table-header-sticky は overflow-x: hidden とし、横スクロールの制御を screening.js の scrollLeft 双方向同期に完全に委ねる",
+		  "loadingOverlay": "最前面のローディング表示",
+		  "modal": "チャートモーダルのレイアウト・ヘッダー・ボディ",
+		  "timeframeSelector": "日足/週足/月足の切替 UI",
+		  "chartSettings": "チャート設定ポップアップ",
+		  "chartLegend": "チャート凡例の位置・背景・影。スマホ（600px以下）では display: none で非表示にする",
+		  "heuristicsTable": "heuristics テーブルのトレンド色分け（th-bg-trend-up / th-bg-trend-down / th-bg-trend-either）・行背景（tr-trend-up / tr-trend-down）・適用ルールハイライト（td-heuristics-applied）",
+		  "responsive": "600px 以下での UI 最適化。モードブロックのフル幅化・除外市場チェックボックスの折り返し・チャートモーダルのフルスクリーン化・ヘッダの2段折り返し・サブチャート高さ縮小（--rci-macd-height-mobile）・凡例非表示を含む"
+		}
       }
     },
     "libraries": {
