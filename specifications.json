@@ -337,7 +337,8 @@
       },
       "chartMain": {
         "file": "js/chart-main.js",
-        "responsibility": "モーダル制御・チャート描画の司令塔"
+        "responsibility": "モーダル制御・チャート描画の司令塔",
+		"loadingOverlay": "サーバ通信（fetchChartData）を伴う描画はすべて drawChart() を経由し、drawChart() の先頭でオーバーレイを表示・finally ブロックで非表示にすることで、呼び出し元によらずローディング表示を保証する"
       }
     }
   },
