@@ -338,7 +338,16 @@
       "chartMain": {
         "file": "js/chart-main.js",
         "responsibility": "モーダル制御・チャート描画の司令塔",
-		"loadingOverlay": "サーバ通信（fetchChartData）を伴う描画はすべて drawChart() を経由し、drawChart() の先頭でオーバーレイを表示・finally ブロックで非表示にすることで、呼び出し元によらずローディング表示を保証する"
+        "loadingOverlay": "サーバ通信（fetchChartData）を伴う描画はすべて drawChart() を経由し、drawChart() の先頭でオーバーレイを表示・finally ブロックで非表示にすることで、呼び出し元によらずローディング表示を保証する"
+      },
+      "loadingOverlaySspec": {
+        "rule": "フロントエンドのすべてのサーバ通信は、通信開始前にローディングオーバーレイを表示し、try/finally の finally ブロックで必ず非表示にする",
+        "overlayElements": {
+          "#controlsLoadingOverlay": "条件設定カード（/dates・/heuristics_dates 通信時）",
+          "#loadingOverlay":         "結果テーブルカード（/screening 通信時）",
+          "#chartLoadingOverlay":    "チャートモーダル（/chart 通信時）"
+        },
+        "pattern": "通信関数の先頭でオーバーレイを表示し、try/finally の finally で非表示にする。呼び出し元はオーバーレイを操作しない"
       }
     }
   },
