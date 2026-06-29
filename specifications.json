@@ -12,6 +12,7 @@
           "layout": "body, app-container, card の基本レイアウトと配色",
           "controls": "条件設定 UI（controls-grid / controls-grid-heuristics / mode-block / mode-block-heuristics / mode-conditions / exclude-markets-fieldset）",
           "buttons": "primary / secondary / ghost / small ボタンのスタイル",
+          "resultSectionHeader": ".result-section-header（h2・resultCount・csvDownloadBtn を横並びにするフレックスコンテナ）と .csv-download-btn（右端配置・ホバースタイル・disabled スタイル）",
           "table": "固定ヘッダ方式のテーブル構造と列幅同期（table を 2 枚使用し、列幅は screening.js 側で同期）",
           "loadingOverlay": "最前面のローディング表示",
           "modal": "チャートモーダルのレイアウト・ヘッダー・ボディ",
@@ -175,6 +176,7 @@
             "heuristicsDateSelect": "#heuristicsDateSelect",
             "loadingOverlay": "#loadingOverlay",
             "resultCount": "#resultCount",
+            "csvDownloadBtn": "#csvDownloadBtn（スクリーニング結果の CSV ダウンロードボタン。結果が 0 件の間は disabled。#resultSection 右上に配置）",
             "resultSection": "#resultSection（スクリーニング完了後のスクロール対象）"
           }
         },
@@ -188,7 +190,45 @@
           "resultSharing": "window.setScreeningResults が関数なら、結果配列を渡して呼び出す",
           "fixedHeader": "table-header-sticky と table-scroll-outer の scrollLeft を双方向同期し、列幅は body 側 thead の th 実測幅で sticky 側 thead を同期し、fixed-col は syncFixedColumns で left を再計算する",
           "getExcludeMarkets": ".exclude-market-checkbox:checked の value をカンマ区切りで返す関数。heuristics モードの fetch 前に呼び出し、1件以上の場合のみ exclude_markets パラメータに設定する",
+          "csvDownload": {
+            "trigger": "#csvDownloadBtn クリック → downloadCsv() を呼び出す",
+            "enableCondition": "showResults() 完了時に results.length > 0 であれば #csvDownloadBtn の disabled を解除する。results.length === 0 の場合は disabled のまま",
+            "dataSource": "currentResults（ソート後の状態を反映）",
+            "fileName": "screening_<mode>_<YYYYMMDD>.csv（YYYYMMDD はダウンロード実行日）",
+            "encoding": "BOM 付き UTF-8（Excel での文字化け防止）",
+            "lineEnding": "CRLF（RFC 4180 準拠）",
+            "headerFormat": {
+              "1行ヘッダ（ratio / date モード）": "列名をそのまま出力。例: コード,銘柄名,出来高倍率,...",
+              "2行ヘッダ（heuristics モード）": "「1行目（2行目）」形式で1行に統合して出力。group_label === item.label の場合（rowspan=2 列）はグループ名のみ。複数 item / group_label !== item.label の場合は「グループ名（item.label）」形式"
+            },
+            "cellValueFormat": "techValueToText() で画面表示と同等のテキストに変換（↗/↘/－・○/×・「price（tryCount回）」等）",
+            "escaping": "RFC 4180 準拠。ダブルクォート・カンマ・改行を含むセルはダブルクォートで囲み、セル内のダブルクォートは \"\" にエスケープする"
+          },
           "loadHeuristicsDates": "全日付をそのまま option に追加する（「最新を使用」オプションなし）"
+        },
+        "csvExportFunctions": {
+          "description": "CSV ダウンロード機能を構成する関数群。screening.js 内に実装する",
+          "escapeCsvCell": {
+            "signature": "escapeCsvCell(value) → string",
+            "responsibility": "RFC 4180 準拠の CSV セルエスケープ。ダブルクォート・カンマ・改行を含む場合はダブルクォートで囲み、内部のダブルクォートを \"\" に変換する"
+          },
+          "techValueToText": {
+            "signature": "techValueToText(key, val) → string",
+            "responsibility": "heuristics モードの TECH_* 値を画面表示と同等のプレーンテキストに変換する。specifications の cellRendering 定義に完全準拠",
+            "note": "showResults 内の switch 文と同一ロジックを持つ。両者の乖離が生じた場合は両方を同期して修正すること"
+          },
+          "buildCsvHeaders": {
+            "signature": "buildCsvHeaders(mode, label) → string[]",
+            "responsibility": "表示モードに応じた CSV ヘッダ行（1行）を生成する。heuristics モードは HEURISTICS_TYPES を走査して「グループ名（item.label）」形式に変換する"
+          },
+          "buildCsvRow": {
+            "signature": "buildCsvRow(r, mode) → string[]",
+            "responsibility": "結果オブジェクト1件分のセル値配列を返す。heuristics モードは HEURISTICS_TYPES 全 key を techValueToText() 経由で変換する"
+          },
+          "downloadCsv": {
+            "signature": "downloadCsv() → void",
+            "responsibility": "currentResults を CSV 文字列に変換し、Blob + <a> 要素でダウンロードをトリガーする。Object URL は revokeObjectURL() で即時解放する"
+          }
         }
       },
       "chartIndicators": {
@@ -808,6 +848,7 @@
   "dataFlow": {
     "chartData": "chart-data.js → fetchChartData → API /chart → candleData → chart-main.js → 各チャート描画",
     "screening": "screening.js → API /screening → テーブル表示 → 行クリックで chart-main.js を呼び出し",
+    "csvExport": "screening.js（currentResults）→ buildCsvHeaders / buildCsvRow / escapeCsvCell → Blob（BOM付きUTF-8）→ <a>.click() → ブラウザダウンロード",
     "margin": "scripts/margin.js → margin.json（信用取引可否データ）",
     "jpx": "scripts/download-jpx-xlsx.js → data_j.xlsx → scripts/fetch.js → data.json",
     "heuristics": "scripts/heuristics.js → scripts/heuristics_conditions.js → heuristics_YYYYMMDD.json → main.py /screening?mode=heuristics → app/heuristics_scoring_rules.py → app/heuristics_scoring.py（applied_*_rules を含むスコアを返却）→ screening.js（ tr-trend-up/down・td-heuristics-applied でハイライト表示）"
