@@ -767,7 +767,11 @@
       "systemDependencies": "libreoffice（apt-get install -y libreoffice）",
       "concurrency": "group: auto-update / cancel-in-progress: false（複数ワークフローの同時実行禁止）",
       "permissions": "contents: write",
-      "pushStrategy": "git push 失敗時は fetch → rebase → push でリトライ",
+	  "checkoutOptions": {
+	    "fetch-depth": 0,
+	    "reason": "stale な origin/main を参照しないよう全履歴を取得する"
+	  },
+	  "pushStrategy": "git push 失敗時は fetch → rebase -X theirs → push でリトライ",
       "outputs": ["data/data_j.xlsx", "data/backup/"]
     },
     "fetch.yml": {
@@ -782,7 +786,11 @@
       "dependencies": "node-fetch@3 xlsx（npm install --no-save）",
       "concurrency": "group: auto-update / cancel-in-progress: false（複数ワークフローの同時実行禁止）",
       "permissions": "contents: write",
-      "pushStrategy": "git push 失敗時は fetch → rebase → push でリトライ",
+	  "checkoutOptions": {
+	    "fetch-depth": 0,
+	    "reason": "stale な origin/main を参照しないよう全履歴を取得する"
+	  },
+	  "pushStrategy": "git push 失敗時は fetch → rebase -X theirs → push でリトライ",
       "outputs": ["data/data.json", "data/backup/"]
     },
     "margin.yml": {
@@ -794,7 +802,11 @@
       "dependencies": "node-fetch@3 xlsx jsdom pdfjs-dist iconv-lite（npm install --no-save）",
       "concurrency": "group: auto-update / cancel-in-progress: false（複数ワークフローの同時実行禁止）",
       "permissions": "contents: write",
-      "pushStrategy": "git push 失敗時は fetch → rebase → push でリトライ",
+	  "checkoutOptions": {
+	    "fetch-depth": 0,
+	    "reason": "stale な origin/main を参照しないよう全履歴を取得する"
+	  },
+	  "pushStrategy": "git push 失敗時は fetch → rebase -X theirs → push でリトライ",
       "outputs": ["data/margin.json", "data/backup/"]
     },
     "heuristics.yml": {
@@ -837,7 +849,7 @@
         "fetch-depth": 0,
         "reason": "stale な origin/main を参照しないよう全履歴を取得する"
       },
-      "pushStrategy": "git push 失敗時は fetch → rebase → push でリトライ",
+      "pushStrategy": "git push 失敗時は fetch → rebase -X theirs → push でリトライ",
       "output": {
         "fileFormat": "heuristics_YYYYMMDD.json",
         "overwrite": "同名ファイルが存在する場合は上書きする",
