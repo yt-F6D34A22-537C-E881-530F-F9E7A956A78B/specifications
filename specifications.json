@@ -14,7 +14,7 @@
 		  "controls": "条件設定 UI（controls-grid / controls-grid-heuristics / mode-block / mode-block-heuristics / mode-conditions / exclude-markets-fieldset）",
 		  "buttons": "primary / secondary / ghost / small ボタンのスタイル",
 		  "resultSectionHeader": ".result-section-header（h2・resultCount・csvDownloadBtn を横並びにするフレックスコンテナ）と .csv-download-btn（右端配置・ホバースタイル・disabled スタイル）",
-		  "table": "固定ヘッダ方式のテーブル構造と列幅同期（table を 2 枚使用し、列幅は screening.js 側で同期）。.table-header-sticky は overflow-x: hidden とし、横スクロールの制御を screening.js の scrollLeft 双方向同期に完全に委ねる",
+		  "table": "固定ヘッダ方式のテーブル構造と列幅同期（table を 2 枚使用し、列幅は screening.js 側で同期）",
 		  "loadingOverlay": "最前面のローディング表示",
 		  "modal": "チャートモーダルのレイアウト・ヘッダー・ボディ",
 		  "timeframeSelector": "日足/週足/月足の切替 UI",
