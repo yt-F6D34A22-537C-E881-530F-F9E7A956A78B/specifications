@@ -21,7 +21,7 @@
 		  "chartSettings": "チャート設定ポップアップ",
 		  "chartLegend": "チャート凡例の位置・背景・影。スマホ（600px以下）では display: none で非表示にする",
 		  "heuristicsTable": "heuristics テーブルのトレンド色分け（th-bg-trend-up / th-bg-trend-down / th-bg-trend-either）・行背景（tr-trend-up / tr-trend-down）・適用ルールハイライト（td-heuristics-applied）",
-		  "responsive": "600px 以下での UI 最適化。モードブロックのフル幅化・除外市場チェックボックスの折り返し・チャートモーダルのフルスクリーン化・ヘッダの2段折り返し・サブチャート高さ縮小（--rci-macd-height-mobile）・凡例非表示・結果テーブル銘柄名列の固定幅省略表示（ellipsis）とその他列の最小幅確保による視認列数改善・チャート設定ボタン（.chart-settings-btn）のタップ領域拡大（44×44px・bottom余白確保）・compare モード入力欄（#compareCsvFile/#compareCodes/#compareFromDate/#compareToDateSelect）の幅100%化と box-sizing: border-box によるはみ出し防止・入力方法（.compare-source-option）の flex-wrap: wrap によるラジオ＋入力欄の折り返し表示・比較期間（.compare-date-fieldset）の縦積み化と矢印（.compare-date-arrow）の90度回転表示（PC幅では「比較元日付 → 比較先日付」の横向き矢印、600px以下では縦積みレイアウトに合わせ transform: rotate(90deg) で縦向き矢印として表示。文字自体は → のまま、見た目のみ回転）・heuristics証券コード入力欄（#heuristicsCodes）の幅100%化を含む"
+		  "responsive": "600px 以下での UI 最適化。モードブロックのフル幅化・除外市場チェックボックスの折り返し・チャートモーダルのフルスクリーン化・ヘッダの2段折り返し・サブチャート高さ縮小（--rci-macd-height-mobile）・凡例非表示・結果テーブル銘柄名列の固定幅省略表示（ellipsis）とその他列の最小幅確保による視認列数改善・チャート設定ボタン（.chart-settings-btn）のタップ領域拡大（44×44px・bottom余白確保）・compare モード入力欄（#compareCsvFile/#compareCodes/#compareFromDate/#compareToDateSelect）の幅100%化と box-sizing: border-box によるはみ出し防止・入力方法（compare-source-fieldset .compare-source-option）は600px以下で grid-template-columns を auto 120px minmax(0, 1fr)（PC・3列）から auto 1fr（モバイル・2列）に切り替え、対象入力欄（#compareCsvFile・#compareCodes）を grid-column: 1 / -1 で2行目にフル幅展開する・比較期間（.compare-date-fieldset）の縦積み化と矢印（.compare-date-arrow）の90度回転表示（PC幅では「比較元日付 → 比較先日付」の横向き矢印、600px以下では縦積みレイアウトに合わせ transform: rotate(90deg) で縦向き矢印として表示。文字自体は → のまま、見た目のみ回転）・heuristics証券コード入力欄（#heuristicsCodes）の幅100%化を含む"
 		}
       }
     },
@@ -185,7 +185,7 @@
               "controls": [
                 "#compareCsvFile（CSVアップロード。input[name=compareSource] が csv のとき有効）",
                 "#compareCodes（証券コード直接入力。input[name=compareSource] が code のとき有効）",
-                "#compareFromDate（比較元日付。readonly。デフォルトは直近の最新市場開場日、CSVアップロード時はそのファイル名の日付を自動設定する。入力方法ラジオを切り替えても再設定はしない）",
+                "#compareFromDate（比較元日付。<select>。選択肢は /trading_dates から取得した直近3か月の市場開場日。デフォルトは一覧の先頭＝直近の最新市場開場日、CSVアップロード時はそのファイル名の日付を選択状態にする〔一覧に存在しない場合は option を動的追加してから選択する〕。入力方法ラジオを切り替えても再設定はしない）",
                 "#compareToDateSelect（比較先日付。デフォルトは直近の最新市場開場日）"
               ],
               "tableColumns": [
@@ -200,7 +200,7 @@
               "sourceRadio": {
                 "element": "input[name='compareSource']（csv / code）",
                 "behavior": "csv 選択時は #compareCsvFile を有効化・#compareCodes を無効化。code 選択時はその逆。スクリーニングに用いる証券コードはこの選択値で決定する",
-                "layout": ".compare-source-radio は PC では flex-direction: row で2択を横並び表示する。600px 以下では flex-direction: column に切り替え縦積みにする"
+                "layout": "compare-source-fieldset 配下の .compare-source-option は display: grid（grid-template-columns: auto 120px minmax(0, 1fr)）でラジオ・ラベル文言・対象入力欄を3列に整列して2択を表示する。600px 以下では grid-template-columns: auto 1fr の2列に切り替え、対象入力欄を2行目へフル幅展開する縦積みレイアウトにする"
               },
               "csvUpload": {
                 "fileNamePattern": "screening_<ratio|date|heuristics>_<yyyymmdd>.csv（screening.js の downloadCsv が生成するファイル名と同一形式）",
@@ -241,7 +241,7 @@
             "heuristicsCodes": "#heuristicsCodes（heuristics モードの証券コード絞り込み・任意入力）",
             "compareCsvFile": "#compareCsvFile（compare モードのCSVアップロード）",
             "compareCodes": "#compareCodes（compare モードの証券コード直接入力）",
-            "compareFromDate": "#compareFromDate（compare モードの比較元日付・readonly）",
+            "compareFromDate": "#compareFromDate（compare モードの比較元日付・<select>。選択肢は /trading_dates から動的構築）",
             "compareToDateSelect": "#compareToDateSelect（compare モードの比較先日付）",
             "loadingOverlay": "#loadingOverlay",
             "resultCount": "#resultCount",
@@ -262,7 +262,7 @@
           "heuristicsCodesInput": "#heuristicsCodes に値が入力されている場合のみ /screening の codes パラメータとして送信し、heuristics モードの対象銘柄を絞り込む",
           "compareCsvUpload": {
             "trigger": "#compareCsvFile の change イベント",
-            "fileNameParsing": "screening_<ratio|date|heuristics>_<yyyymmdd>.csv 形式のファイル名から source_mode と比較元日付（#compareFromDate の初期値）を抽出する。形式が一致しない場合はアラート表示の上アップロードを無効化する",
+            "fileNameParsing": "screening_<ratio|date|heuristics>_<yyyymmdd>.csv 形式のファイル名から source_mode と日付を抽出する。setCompareFromDate() が #compareFromDate（<select>）の選択肢一覧に該当日付が存在するか確認し、存在しなければ option を動的追加した上で選択状態にする。形式が一致しない場合はアラート表示の上アップロードを無効化する",
             "csvBodyParsing": "extractCodesFromCsv() / parseCsvLine() でCSV本文の「コード」列の値一覧を抽出し、/screening の codes パラメータとして送信する"
           },
           "compareScreening": "compare モードの /screening 呼び出しでは mode=compare・from_date・to_date・codes・source_mode を送信する。source_mode は compareSource が code（証券コード直接入力）の場合は空文字を送信する",
@@ -496,6 +496,14 @@
         "/dates": {
           "method": "GET",
           "responsibility": "全銘柄の全日付キー（YYYYMMDD）を抽出し、降順で返す"
+        },
+        "/trading_dates": {
+          "method": "GET",
+          "responsibility": "compare モードの比較元日付セレクタ（#compareFromDate）用に、直近3か月の市場開場日一覧を返す。data.json は直近10日分のみ保持のため対象外とし、代表銘柄（日経平均株価指数 ^N225）の日足を yfinance から取得（period=3mo）し、取引のあった日付を開場日として算出する",
+          "output": {
+            "status": "ok",
+            "dates": "YYYYMMDD の配列（降順）"
+          }
         },
         "/heuristics_dates": {
           "method": "GET",
@@ -983,7 +991,7 @@
     "chartData": "chart-data.js → fetchChartData → API /chart → candleData → chart-main.js → 各チャート描画",
     "screening": "screening.js → API /screening → テーブル表示 → 行クリックで chart-main.js を呼び出し",
     "csvExport": "screening.js（currentResults）→ buildCsvHeaders / buildCsvRow / escapeCsvCell → Blob（BOM付きUTF-8）→ <a>.click() → ブラウザダウンロード（対応モードは ratio / date / heuristics の3種。compare モードは対象外）",
-    "compareScreening": "screening.js（CSVアップロード時は parseCsvLine / extractCodesFromCsv でコード列抽出、証券コード直接入力時はテキスト入力値をそのまま使用）→ API /screening?mode=compare（codes・from_date・to_date・source_mode）→ main.py が fetch_close_price で yfinance から個別に終値取得（source_mode=heuristics の場合のみ GitHub Raw の heuristics JSON も取得）→ 増減額・増減率・予測を算出して返却 → テーブル表示",
+    "compareScreening": "loadDates() 内の loadCompareFromDates() → API /trading_dates → #compareFromDate（直近3か月の市場開場日。デフォルトは先頭＝最新の市場開場日）を構築 → CSVアップロード時は setCompareFromDate() がファイル名日付を選択肢に存在しなければ動的追加した上で選択 → screening.js（CSVアップロード時は parseCsvLine / extractCodesFromCsv でコード列抽出、証券コード直接入力時はテキスト入力値をそのまま使用）→ API /screening?mode=compare（codes・from_date・to_date・source_mode）→ main.py が fetch_close_price で yfinance から個別に終値取得（source_mode=heuristics の場合のみ GitHub Raw の heuristics JSON も取得）→ 増減額・増減率・予測を算出して返却 → テーブル表示",
     "margin": "scripts/margin.js → margin.json（信用取引可否データ）",
     "jpx": "scripts/download-jpx-xlsx.js → data_j.xlsx → scripts/fetch.js → data.json",
     "heuristics": "scripts/heuristics.js → scripts/heuristics_conditions.js → heuristics_YYYYMMDD.json → main.py /screening?mode=heuristics（codes 指定時は絞り込み）→ app/heuristics_scoring_rules.py → app/heuristics_scoring.py（applied_*_rules を含むスコアを返却）→ screening.js（ tr-trend-up/down・td-heuristics-applied でハイライト表示）"
