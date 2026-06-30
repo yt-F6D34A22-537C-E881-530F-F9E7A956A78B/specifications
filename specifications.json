@@ -11,7 +11,7 @@
         "sections": {
 		  "designTokens": ":root に定義する CSS カスタムプロパティ。色（--color-*）・シャドウ（--shadow-*）・ボーダー半径（--radius-*）・サイズ（--rci-macd-height 等）・z-index 体系（--z-*）をここで一元管理する。ブレークポイントは CSS カスタムプロパティがメディアクエリ条件内で使用不可のため、:root のコメント（--bp-mobile: 600px）と @media の数値を一致させる運用とする",
 		  "layout": "body, app-container, card の基本レイアウトと配色",
-		  "controls": "条件設定 UI（controls-grid / controls-grid-heuristics / mode-block / mode-block-heuristics / mode-conditions / exclude-markets-fieldset / compare-source-radio）。compare-source-radio は入力方法（CSVアップロード／証券コード指定）のラジオを横並び表示するためのスタイル。exclude-markets-fieldset は width: 100% で親ラベルの残り幅を占有し、#heuristicsCodes の固定幅（200px）との横並びで余白を生じさせない",
+		  "controls": "条件設定 UI（controls-grid / controls-grid-heuristics / mode-block / mode-block-heuristics / mode-conditions / exclude-markets-fieldset / compare-source-fieldset / compare-source-option / compare-source-label）。exclude-markets-fieldset は width: 100% で親ラベルの残り幅を占有し、#heuristicsCodes の固定幅（200px）との横並びで余白を生じさせない。compare-source-fieldset 配下の compare-source-option は display: grid（grid-template-columns: auto 120px minmax(0, 1fr)）で「ラジオ／ラベル文言（.compare-source-label）／対象入力欄（#compareCsvFile・#compareCodes）」を整列し、CSVアップロード・証券コード指定の2行で入力欄の開始位置を縦に揃える。3列目を minmax(0, 1fr) とすることで、track 幅が利用可能幅を超えて広がらないようにしている。.mode-conditions label（クラス1+要素1）よりセレクタの詳細度を上げるため、compare-source-fieldset 配下にスコープした compare-source-fieldset .compare-source-option として定義している。compare-source-option 配下の input[type=\"text\"] / input[type=\"file\"] は box-sizing: border-box を指定し、width: 100% が padding・border を含めて track 幅にぴったり収まるようにしている（box-sizing 未指定の content-box のままだと padding・border 分だけ右側にはみ出すため）。また #compareConditions（mode-conditions の個別 ID）には align-items: flex-start を指定し、入力方法（compare-source-fieldset）と比較期間（compare-date-fieldset）の高さが異なる場合に、デフォルトの align-items: stretch によって低い方のフィールドセットが引き伸ばされ、内部要素の上部に余計な余白が生じるのを防いでいる",
 		  "buttons": "primary / secondary / ghost / small ボタンのスタイル",
 		  "resultSectionHeader": ".result-section-header（h2・resultCount・csvDownloadBtn を横並びにするフレックスコンテナ）と .csv-download-btn（右端配置・ホバースタイル・disabled スタイル）",
 		  "table": "固定ヘッダ方式のテーブル構造と列幅同期（table を 2 枚使用し、列幅は screening.js 側で同期）",
@@ -21,7 +21,7 @@
 		  "chartSettings": "チャート設定ポップアップ",
 		  "chartLegend": "チャート凡例の位置・背景・影。スマホ（600px以下）では display: none で非表示にする",
 		  "heuristicsTable": "heuristics テーブルのトレンド色分け（th-bg-trend-up / th-bg-trend-down / th-bg-trend-either）・行背景（tr-trend-up / tr-trend-down）・適用ルールハイライト（td-heuristics-applied）",
-		  "responsive": "600px 以下での UI 最適化。モードブロックのフル幅化・除外市場チェックボックスの折り返し・チャートモーダルのフルスクリーン化・ヘッダの2段折り返し・サブチャート高さ縮小（--rci-macd-height-mobile）・凡例非表示・結果テーブル銘柄名列の固定幅省略表示（ellipsis）とその他列の最小幅確保による視認列数改善・チャート設定ボタン（.chart-settings-btn）のタップ領域拡大（44×44px・bottom余白確保）・compare モード入力欄（#compareCsvFile/#compareCodes/#compareFromDate/#compareToDateSelect）の幅100%化と入力方法ラジオ（.compare-source-radio）の縦積み化・heuristics証券コード入力欄（#heuristicsCodes）の幅100%化を含む"
+		  "responsive": "600px 以下での UI 最適化。モードブロックのフル幅化・除外市場チェックボックスの折り返し・チャートモーダルのフルスクリーン化・ヘッダの2段折り返し・サブチャート高さ縮小（--rci-macd-height-mobile）・凡例非表示・結果テーブル銘柄名列の固定幅省略表示（ellipsis）とその他列の最小幅確保による視認列数改善・チャート設定ボタン（.chart-settings-btn）のタップ領域拡大（44×44px・bottom余白確保）・compare モード入力欄（#compareCsvFile/#compareCodes/#compareFromDate/#compareToDateSelect）の幅100%化と box-sizing: border-box によるはみ出し防止・入力方法（.compare-source-option）の flex-wrap: wrap によるラジオ＋入力欄の折り返し表示・比較期間（.compare-date-fieldset）の縦積み化・heuristics証券コード入力欄（#heuristicsCodes）の幅100%化を含む"
 		}
       }
     },
