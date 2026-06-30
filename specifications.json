@@ -21,7 +21,7 @@
 		  "chartSettings": "チャート設定ポップアップ",
 		  "chartLegend": "チャート凡例の位置・背景・影。スマホ（600px以下）では display: none で非表示にする",
 		  "heuristicsTable": "heuristics テーブルのトレンド色分け（th-bg-trend-up / th-bg-trend-down / th-bg-trend-either）・行背景（tr-trend-up / tr-trend-down）・適用ルールハイライト（td-heuristics-applied）",
-		  "responsive": "600px 以下での UI 最適化。モードブロックのフル幅化・除外市場チェックボックスの折り返し・チャートモーダルのフルスクリーン化・ヘッダの2段折り返し・サブチャート高さ縮小（--rci-macd-height-mobile）・凡例非表示・結果テーブル銘柄名列の固定幅省略表示（ellipsis）とその他列の最小幅確保による視認列数改善・チャート設定ボタン（.chart-settings-btn）のタップ領域拡大（44×44px・bottom余白確保）・compare モード入力欄（#compareCsvFile/#compareCodes/#compareFromDate/#compareToDateSelect）の幅100%化と box-sizing: border-box によるはみ出し防止・入力方法（.compare-source-option）の flex-wrap: wrap によるラジオ＋入力欄の折り返し表示・比較期間（.compare-date-fieldset）の縦積み化・heuristics証券コード入力欄（#heuristicsCodes）の幅100%化を含む"
+		  "responsive": "600px 以下での UI 最適化。モードブロックのフル幅化・除外市場チェックボックスの折り返し・チャートモーダルのフルスクリーン化・ヘッダの2段折り返し・サブチャート高さ縮小（--rci-macd-height-mobile）・凡例非表示・結果テーブル銘柄名列の固定幅省略表示（ellipsis）とその他列の最小幅確保による視認列数改善・チャート設定ボタン（.chart-settings-btn）のタップ領域拡大（44×44px・bottom余白確保）・compare モード入力欄（#compareCsvFile/#compareCodes/#compareFromDate/#compareToDateSelect）の幅100%化と box-sizing: border-box によるはみ出し防止・入力方法（.compare-source-option）の flex-wrap: wrap によるラジオ＋入力欄の折り返し表示・比較期間（.compare-date-fieldset）の縦積み化と矢印（.compare-date-arrow）の90度回転表示（PC幅では「比較元日付 → 比較先日付」の横向き矢印、600px以下では縦積みレイアウトに合わせ transform: rotate(90deg) で縦向き矢印として表示。文字自体は → のまま、見た目のみ回転）・heuristics証券コード入力欄（#heuristicsCodes）の幅100%化を含む"
 		}
       }
     },
