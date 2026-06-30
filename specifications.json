@@ -21,7 +21,7 @@
 		  "chartSettings": "チャート設定ポップアップ",
 		  "chartLegend": "チャート凡例の位置・背景・影。スマホ（600px以下）では display: none で非表示にする",
 		  "heuristicsTable": "heuristics テーブルのトレンド色分け（th-bg-trend-up / th-bg-trend-down / th-bg-trend-either）・行背景（tr-trend-up / tr-trend-down）・適用ルールハイライト（td-heuristics-applied）",
-		  "responsive": "600px 以下での UI 最適化。モードブロックのフル幅化・除外市場チェックボックスの折り返し・チャートモーダルのフルスクリーン化・ヘッダの2段折り返し・サブチャート高さ縮小（--rci-macd-height-mobile）・凡例非表示を含む"
+		  "responsive": "600px 以下での UI 最適化。モードブロックのフル幅化・除外市場チェックボックスの折り返し・チャートモーダルのフルスクリーン化・ヘッダの2段折り返し・サブチャート高さ縮小（--rci-macd-height-mobile）・凡例非表示・結果テーブル銘柄名列の固定幅省略表示（ellipsis）とその他列の最小幅確保による視認列数改善・チャート設定ボタン（.chart-settings-btn）のタップ領域拡大（44×44px・bottom余白確保）を含む"
 		}
       }
     },
@@ -66,16 +66,44 @@
                   "query": [
                     "mode=heuristics",
                     "target_date=<yyyymmdd>",
-                    "exclude_markets=<カンマ区切りの市場・商品区分>（省略可）"
+                    "exclude_markets=<カンマ区切りの市場・商品区分>（省略可）",
+                    "codes=<証券コード（4桁）をカンマ区切りで複数指定可。省略可>"
                   ],
-                  "responsibility": "バックエンドが GitHub Raw（RAW_HEURISTICS_PREFIX + YYYYMM/heuristics_YYYYMMDD.json）を Token 認証付きで取得し、スコア計算・除外フィルタを適用した上位20件ずつを返却する",
+                  "responsibility": "バックエンドが GitHub Raw（RAW_HEURISTICS_PREFIX + YYYYMM/heuristics_YYYYMMDD.json）を Token 認証付きで取得し、スコア計算・除外フィルタを適用した上位20件ずつを返却する。codes 指定時は該当銘柄のみに絞り込み、上位20件制限を行わず全件返却する",
                   "outputFormat": {
                     "status": "ok",
                     "target_date": "YYYYMMDD",
                     "data": {
-                      "up": "アップスコア降順の上位20件。各要素にコード・銘柄名・アップスコア・ダウンスコア・applied_up_rules・applied_down_rules・TECH_* を含む",
-                      "down": "ダウンスコア降順の上位20件。各要素にコード・銘柄名・アップスコア・ダウンスコア・applied_up_rules・applied_down_rules・TECH_* を含む"
+                      "up": "アップスコア降順の上位20件（codes 指定時は対象銘柄のうちトレンドが up の全件）。各要素にコード・銘柄名・アップスコア・ダウンスコア・applied_up_rules・applied_down_rules・TECH_* を含む",
+                      "down": "ダウンスコア降順の上位20件（codes 指定時は対象銘柄のうちトレンドが down の全件）。各要素にコード・銘柄名・アップスコア・ダウンスコア・applied_up_rules・applied_down_rules・TECH_* を含む"
                     }
+                  },
+                  "codesFilterBehavior": {
+                    "trendDecision": "codes 指定時、各銘柄のアップスコアとダウンスコアの大きいほうを「トレンド」としてレスポンス要素に設定する",
+                    "responseStructure": "data.up / data.down という既存の出力フォーマットは変更せず、トレンドに応じて振り分ける"
+                  }
+                },
+                "compare": {
+                  "query": [
+                    "mode=compare",
+                    "from_date=<yyyymmdd>（比較元日付）",
+                    "to_date=<yyyymmdd>（比較先日付）",
+                    "codes=<証券コード（4桁）をカンマ区切りで複数指定可>",
+                    "source_mode=<ratio|date|heuristics|空>（CSVアップロード時の元モード。証券コード直接入力時は空）"
+                  ],
+                  "responsibility": "指定された証券コードについて、比較元日付・比較先日付それぞれの終値を yfinance から個別取得し、増減額・増減率・上昇/下降の予測を算出して返却する",
+                  "predictionLogic": {
+                    "ratio": "予測=up（固定）",
+                    "date": "予測=null（予測なし）",
+                    "heuristics": "from_date 時点の heuristics JSON を取得し、calc_heuristics_score の up/down スコアの大きいほうを予測として設定する",
+                    "未指定（証券コード直接入力）": "予測=null（予測なし）"
+                  },
+                  "dataSource": {
+                    "closePrice": "data.json は直近10日分のみ保持のため対象外とし、yfinance から個別取得する（fetch_close_price ユーティリティ）"
+                  },
+                  "outputFormat": {
+                    "status": "ok",
+                    "data": "各要素にコード・銘柄名・比較元終値・比較先終値・増減円・増減率・予測を含む配列。終値取得失敗時は該当要素に error を含む"
                   }
                 }
               }
@@ -115,6 +143,7 @@
             "heuristics": {
               "controls": [
                 "#heuristicsDateSelect",
+                "#heuristicsCodes（証券コード絞り込み。任意入力）",
                 "#heuristicsConditions fieldset（除外する市場・商品区分のチェックボックス群）"
               ],
               "tableColumns": [
@@ -145,7 +174,38 @@
               },
               "resultMerge": "data.data.up / data.data.down をそれぞれ トレンド・スコア キーを付与した上でマージして results 配列を生成する",
               "tableRowStyling": "トレンドが up の行に tr-trend-up、down の行に tr-trend-down クラスを付与する",
-              "cellHighlight": "applied_up_rules（up行）または applied_down_rules（down行）に含まれる TECH_* キーに対応する td に td-heuristics-applied クラスを付与してハイライト表示する"
+              "cellHighlight": "applied_up_rules（up行）または applied_down_rules（down行）に含まれる TECH_* キーに対応する td に td-heuristics-applied クラスを付与してハイライト表示する",
+              "codesInput": {
+                "element": "#heuristicsCodes",
+                "behavior": "任意入力。証券コード（4桁・カンマ区切りで複数可）が入力されている場合のみ /screening の codes パラメータとして送信し、対象銘柄に絞り込む。未入力時は従来通り全銘柄を対象としたスクリーニングを行う"
+              }
+            },
+            "compare": {
+              "controls": [
+                "#compareCsvFile（CSVアップロード。input[name=compareSource] が csv のとき有効）",
+                "#compareCodes（証券コード直接入力。input[name=compareSource] が code のとき有効）",
+                "#compareFromDate（比較元日付。readonly。デフォルトは直近の最新市場開場日、CSVアップロード時はそのファイル名の日付を自動設定する。入力方法ラジオを切り替えても再設定はしない）",
+                "#compareToDateSelect（比較先日付。デフォルトは直近の最新市場開場日）"
+              ],
+              "tableColumns": [
+                "コード",
+                "銘柄名",
+                "比較元終値",
+                "比較先終値",
+                "増減（円）",
+                "増減（％）",
+                "上昇/下降の予測"
+              ],
+              "sourceRadio": {
+                "element": "input[name='compareSource']（csv / code）",
+                "behavior": "csv 選択時は #compareCsvFile を有効化・#compareCodes を無効化。code 選択時はその逆。スクリーニングに用いる証券コードはこの選択値で決定する"
+              },
+              "csvUpload": {
+                "fileNamePattern": "screening_<ratio|date|heuristics>_<yyyymmdd>.csv（screening.js の downloadCsv が生成するファイル名と同一形式）",
+                "behavior": "ファイル名から元モード（source_mode）と日付（比較元日付のデフォルト値）を抽出し、CSV本文の「コード」列の値一覧をスクリーニング対象として送信する。ファイル名形式が一致しない場合はエラーメッセージを表示してアップロードを無効化する",
+                "csvParsing": "screening.js 内に実装する簡易CSVパーサ（parseCsvLine）でダブルクォート・カンマを含むセルに対応する。新規ライブラリは追加しない"
+              },
+              "predictionDisplay": "予測カラムは formatDirectionMark() で ↗/↘/－ に変換して表示する。null の場合は空白（-）表示"
             }
           },
           "heuristicsTypes": {
@@ -175,6 +235,11 @@
             "dateSelect": "#dateSelect",
             "ratioDateSelect": "#ratioDateSelect",
             "heuristicsDateSelect": "#heuristicsDateSelect",
+            "heuristicsCodes": "#heuristicsCodes（heuristics モードの証券コード絞り込み・任意入力）",
+            "compareCsvFile": "#compareCsvFile（compare モードのCSVアップロード）",
+            "compareCodes": "#compareCodes（compare モードの証券コード直接入力）",
+            "compareFromDate": "#compareFromDate（compare モードの比較元日付・readonly）",
+            "compareToDateSelect": "#compareToDateSelect（compare モードの比較先日付）",
             "loadingOverlay": "#loadingOverlay",
             "resultCount": "#resultCount",
             "csvDownloadBtn": "#csvDownloadBtn（スクリーニング結果の CSV ダウンロードボタン。結果が 0 件の間は disabled。#resultSection 右上に配置）",
@@ -183,7 +248,7 @@
         },
         "behavior": {
           "init": "window.onload で initSearchMode と loadDates と loadHeuristicsDates を実行",
-          "modeSwitch": "searchMode ラジオボタンで ratio/date/heuristics の入力有効・無効を切り替え。heuristics モード時は #heuristicsConditions fieldset を fieldset.disabled で有効化する",
+          "modeSwitch": "searchMode ラジオボタンで ratio/date/heuristics/compare の入力有効・無効を切り替え。heuristics モード時は #heuristicsConditions fieldset を fieldset.disabled で有効化する。compare モード時は compareSource ラジオ（csv/code）の選択値に応じて #compareCsvFile / #compareCodes の有効・無効をさらに切り替える",
           "startScreening": "入力検証 → テーブルヘッダ更新 → 経過時間カウンタ開始 → /screening 呼び出し → showResults → 列幅同期 → #resultSection へスムーズスクロール",
           "cancelScreening": "AbortController.abort() で fetch を中断",
           "sorting": "固定ヘッダの th[data-sort-key] クリックで currentResults を昇順/降順ソート",
@@ -191,11 +256,18 @@
           "resultSharing": "window.setScreeningResults が関数なら、結果配列を渡して呼び出す",
           "fixedHeader": "table-header-sticky と table-scroll-outer の scrollLeft を双方向同期し、列幅は body 側 thead の th 実測幅で sticky 側 thead を同期し、fixed-col は syncFixedColumns で left を再計算する",
           "getExcludeMarkets": ".exclude-market-checkbox:checked の value をカンマ区切りで返す関数。heuristics モードの fetch 前に呼び出し、1件以上の場合のみ exclude_markets パラメータに設定する",
+          "heuristicsCodesInput": "#heuristicsCodes に値が入力されている場合のみ /screening の codes パラメータとして送信し、heuristics モードの対象銘柄を絞り込む",
+          "compareCsvUpload": {
+            "trigger": "#compareCsvFile の change イベント",
+            "fileNameParsing": "screening_<ratio|date|heuristics>_<yyyymmdd>.csv 形式のファイル名から source_mode と比較元日付（#compareFromDate の初期値）を抽出する。形式が一致しない場合はアラート表示の上アップロードを無効化する",
+            "csvBodyParsing": "extractCodesFromCsv() / parseCsvLine() でCSV本文の「コード」列の値一覧を抽出し、/screening の codes パラメータとして送信する"
+          },
+          "compareScreening": "compare モードの /screening 呼び出しでは mode=compare・from_date・to_date・codes・source_mode を送信する。source_mode は compareSource が code（証券コード直接入力）の場合は空文字を送信する",
           "csvDownload": {
             "trigger": "#csvDownloadBtn クリック → downloadCsv() を呼び出す",
             "enableCondition": "showResults() 完了時に results.length > 0 であれば #csvDownloadBtn の disabled を解除する。results.length === 0 の場合は disabled のまま",
             "dataSource": "currentResults（ソート後の状態を反映）",
-            "fileName": "screening_<mode>_<YYYYMMDD>.csv（YYYYMMDD はダウンロード実行日）",
+            "fileName": "screening_<mode>_<YYYYMMDD>.csv（YYYYMMDD はスクリーニングに指定した対象日。モードごとの日付セレクタ値〔ratioDateSelect / dateSelect / heuristicsDateSelect〕を使用する。compare モードはサポート対象外〔CSVダウンロード機能は ratio/date/heuristics の3モードのみ〕）",
             "encoding": "BOM 付き UTF-8（Excel での文字化け防止）",
             "lineEnding": "CRLF（RFC 4180 準拠）",
             "headerFormat": {
@@ -220,11 +292,11 @@
           },
           "buildCsvHeaders": {
             "signature": "buildCsvHeaders(mode, label) → string[]",
-            "responsibility": "表示モードに応じた CSV ヘッダ行（1行）を生成する。heuristics モードは HEURISTICS_TYPES を走査して「グループ名（item.label）」形式に変換する"
+            "responsibility": "表示モードに応じた CSV ヘッダ行（1行）を生成する。heuristics モードは HEURISTICS_TYPES を走査して「グループ名（item.label）」形式に変換する。対応モードは ratio / date / heuristics の3種（compare モードは csvDownloadBtn を提供しないため対象外）"
           },
           "buildCsvRow": {
             "signature": "buildCsvRow(r, mode) → string[]",
-            "responsibility": "結果オブジェクト1件分のセル値配列を返す。heuristics モードは HEURISTICS_TYPES 全 key を techValueToText() 経由で変換する"
+            "responsibility": "結果オブジェクト1件分のセル値配列を返す。heuristics モードは HEURISTICS_TYPES 全 key を techValueToText() 経由で変換する。対応モードは ratio / date / heuristics の3種（compare モードは対象外）"
           },
           "downloadCsv": {
             "signature": "downloadCsv() → void",
@@ -410,6 +482,11 @@
         "parse_exclude_markets": {
           "signature": "parse_exclude_markets(exclude_markets: str) -> set",
           "responsibility": "カンマ区切りの除外市場文字列を set に変換する。空文字・None の場合は空 set を返す"
+        },
+        "fetch_close_price": {
+          "signature": "fetch_close_price(code: str, date: str) -> float | None",
+          "responsibility": "指定銘柄コードの指定日（YYYYMMDD）の終値を yfinance から個別取得する。data.json の保持範囲（直近10日）を超える日付の終値取得（compare モード用）に使用する。取得失敗時は None を返す",
+          "usedBy": "/screening?mode=compare"
         }
       },
       "endpoints": {
@@ -450,10 +527,11 @@
               "output": "値上がり率降順トップ100"
             },
             "heuristics": {
-              "responsibility": "GitHub Raw から heuristics JSON を取得し、スコア計算・除外フィルタを適用して上位20件ずつ返却する",
+              "responsibility": "GitHub Raw から heuristics JSON を取得し、スコア計算・除外フィルタを適用して上位20件ずつ返却する。codes 指定時は対象銘柄に絞り込み、上位20件制限を行わず全件返却する",
               "parameters": {
                 "target_date": "必須（YYYYMMDD）",
-                "exclude_markets": "省略可。カンマ区切りの市場・商品区分文字列。ticker_list の「市場・商品区分」列と照合し、一致する銘柄を除外する"
+                "exclude_markets": "省略可。カンマ区切りの市場・商品区分文字列。ticker_list の「市場・商品区分」列と照合し、一致する銘柄を除外する",
+                "codes": "省略可。証券コード（4桁）をカンマ区切りで複数指定可。指定時は対象銘柄のみに絞り込み、各銘柄のアップスコア・ダウンスコアの大きいほうを「トレンド」として設定する"
               },
               "logic": [
                 "yyyymm = target_date[:6]",
@@ -462,15 +540,45 @@
                 "ticker_list から ticker_row を1回で取得し、銘柄名と市場・商品区分を参照する",
                 "exclude_set に含まれる市場・商品区分の銘柄をスキップ",
                 "calc_heuristics_score(tech) でスコアを計算し、アップスコア・ダウンスコア・applied_up_rules・applied_down_rules をレスポンスに含める",
-                "アップスコア降順で上位20件・ダウンスコア降順で上位20件を返却"
+                "codes 指定時は該当銘柄のみに絞り込み、トレンド（アップ/ダウンスコアの大きいほう）を設定して data.up / data.down に振り分け、全件返却する",
+                "codes 未指定時は従来通りアップスコア降順で上位20件・ダウンスコア降順で上位20件を返却"
               ],
               "output": {
                 "status": "ok",
                 "target_date": "YYYYMMDD",
                 "data": {
-                  "up": "アップスコア降順の上位20件（各要素にコード・銘柄名・アップスコア・ダウンスコア・applied_up_rules・applied_down_rules・TECH_* を含む）",
-                  "down": "ダウンスコア降順の上位20件（各要素にコード・銘柄名・アップスコア・ダウンスコア・applied_up_rules・applied_down_rules・TECH_* を含む）"
+                  "up": "アップスコア降順の上位20件（codes 指定時はトレンドが up の対象銘柄全件）。各要素にコード・銘柄名・アップスコア・ダウンスコア・applied_up_rules・applied_down_rules・TECH_* を含む",
+                  "down": "ダウンスコア降順の上位20件（codes 指定時はトレンドが down の対象銘柄全件）。各要素にコード・銘柄名・アップスコア・ダウンスコア・applied_up_rules・applied_down_rules・TECH_* を含む"
                 }
+              }
+            },
+            "compare": {
+              "responsibility": "指定された証券コードについて、比較元日付・比較先日付それぞれの終値を yfinance から個別取得（fetch_close_price）し、増減額・増減率・上昇/下降の予測を算出して返却する",
+              "required": [
+                "from_date",
+                "to_date",
+                "codes"
+              ],
+              "parameters": {
+                "from_date": "必須（YYYYMMDD）。比較元日付",
+                "to_date": "必須（YYYYMMDD）。比較先日付",
+                "codes": "必須。証券コード（4桁）をカンマ区切りで複数指定可",
+                "source_mode": "省略可（ratio / date / heuristics / 空）。CSVアップロード時の元モード。証券コード直接入力時は空文字を送信する"
+              },
+              "calculations": [
+                "増減円 = to_close - from_close",
+                "増減率 = (to_close - from_close) / from_close * 100"
+              ],
+              "predictionLogic": {
+                "ratio": "予測=up（固定）",
+                "date": "予測=null（予測なし）",
+                "heuristics": "from_date 時点の heuristics JSON を取得し、calc_heuristics_score の up/down スコアの大きいほうを予測として設定する",
+                "未指定（証券コード直接入力）": "予測=null（予測なし）"
+              },
+              "errorHandling": "終値取得失敗（fetch_close_price が None を返す）銘柄は、結果要素に error メッセージを含めて返却する（スクリーニング全体は失敗させない）",
+              "output": {
+                "status": "ok",
+                "data": "各要素にコード・銘柄名・比較元終値・比較先終値・増減円・増減率・予測を含む配列。終値取得失敗時は該当要素に error を含む"
               }
             }
           }
@@ -871,9 +979,10 @@
   "dataFlow": {
     "chartData": "chart-data.js → fetchChartData → API /chart → candleData → chart-main.js → 各チャート描画",
     "screening": "screening.js → API /screening → テーブル表示 → 行クリックで chart-main.js を呼び出し",
-    "csvExport": "screening.js（currentResults）→ buildCsvHeaders / buildCsvRow / escapeCsvCell → Blob（BOM付きUTF-8）→ <a>.click() → ブラウザダウンロード",
+    "csvExport": "screening.js（currentResults）→ buildCsvHeaders / buildCsvRow / escapeCsvCell → Blob（BOM付きUTF-8）→ <a>.click() → ブラウザダウンロード（対応モードは ratio / date / heuristics の3種。compare モードは対象外）",
+    "compareScreening": "screening.js（CSVアップロード時は parseCsvLine / extractCodesFromCsv でコード列抽出、証券コード直接入力時はテキスト入力値をそのまま使用）→ API /screening?mode=compare（codes・from_date・to_date・source_mode）→ main.py が fetch_close_price で yfinance から個別に終値取得（source_mode=heuristics の場合のみ GitHub Raw の heuristics JSON も取得）→ 増減額・増減率・予測を算出して返却 → テーブル表示",
     "margin": "scripts/margin.js → margin.json（信用取引可否データ）",
     "jpx": "scripts/download-jpx-xlsx.js → data_j.xlsx → scripts/fetch.js → data.json",
-    "heuristics": "scripts/heuristics.js → scripts/heuristics_conditions.js → heuristics_YYYYMMDD.json → main.py /screening?mode=heuristics → app/heuristics_scoring_rules.py → app/heuristics_scoring.py（applied_*_rules を含むスコアを返却）→ screening.js（ tr-trend-up/down・td-heuristics-applied でハイライト表示）"
+    "heuristics": "scripts/heuristics.js → scripts/heuristics_conditions.js → heuristics_YYYYMMDD.json → main.py /screening?mode=heuristics（codes 指定時は絞り込み）→ app/heuristics_scoring_rules.py → app/heuristics_scoring.py（applied_*_rules を含むスコアを返却）→ screening.js（ tr-trend-up/down・td-heuristics-applied でハイライト表示）"
   }
 }
