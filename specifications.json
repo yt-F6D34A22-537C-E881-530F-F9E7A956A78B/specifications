@@ -186,7 +186,7 @@
                 "#compareCsvFile（CSVアップロード。input[name=compareSource] が csv のとき有効）",
                 "#compareCodes（証券コード直接入力。input[name=compareSource] が code のとき有効）",
                 "#compareFromDate（比較元日付。<select>。選択肢は /trading_dates から取得した直近3か月の市場開場日。デフォルトは一覧の先頭＝直近の最新市場開場日、CSVアップロード時はそのファイル名の日付を選択状態にする〔一覧に存在しない場合は option を動的追加してから選択する〕。入力方法ラジオを切り替えても再設定はしない）",
-                "#compareToDateSelect（比較先日付。デフォルトは直近の最新市場開場日）"
+                "#compareToDateSelect（比較先日付。選択肢は #compareFromDate と同じく /trading_dates から取得した直近3か月の市場開場日。デフォルトは一覧の先頭＝直近の最新市場開場日）"
               ],
               "tableColumns": [
                 "コード",
@@ -991,7 +991,7 @@
     "chartData": "chart-data.js → fetchChartData → API /chart → candleData → chart-main.js → 各チャート描画",
     "screening": "screening.js → API /screening → テーブル表示 → 行クリックで chart-main.js を呼び出し",
     "csvExport": "screening.js（currentResults）→ buildCsvHeaders / buildCsvRow / escapeCsvCell → Blob（BOM付きUTF-8）→ <a>.click() → ブラウザダウンロード（対応モードは ratio / date / heuristics の3種。compare モードは対象外）",
-    "compareScreening": "loadDates() 内の loadCompareFromDates() → API /trading_dates → #compareFromDate（直近3か月の市場開場日。デフォルトは先頭＝最新の市場開場日）を構築 → CSVアップロード時は setCompareFromDate() がファイル名日付を選択肢に存在しなければ動的追加した上で選択 → screening.js（CSVアップロード時は parseCsvLine / extractCodesFromCsv でコード列抽出、証券コード直接入力時はテキスト入力値をそのまま使用）→ API /screening?mode=compare（codes・from_date・to_date・source_mode）→ main.py が fetch_close_price で yfinance から個別に終値取得（source_mode=heuristics の場合のみ GitHub Raw の heuristics JSON も取得）→ 増減額・増減率・予測を算出して返却 → テーブル表示",
+    "compareScreening": "window.onload の loadTradingDates() → API /trading_dates → #compareFromDate / #compareToDateSelect（共通データソース・直近3か月の市場開場日。デフォルトは先頭＝最新の市場開場日）を構築 → CSVアップロード時は setCompareFromDate() がファイル名日付を選択肢に存在しなければ動的追加した上で選択 → screening.js（CSVアップロード時は parseCsvLine / extractCodesFromCsv でコード列抽出、証券コード直接入力時はテキスト入力値をそのまま使用）→ API /screening?mode=compare（codes・from_date・to_date・source_mode）→ main.py が fetch_close_price で yfinance から個別に終値取得（source_mode=heuristics の場合のみ GitHub Raw の heuristics JSON も取得）→ 増減額・増減率・予測を算出して返却 → テーブル表示",
     "margin": "scripts/margin.js → margin.json（信用取引可否データ）",
     "jpx": "scripts/download-jpx-xlsx.js → data_j.xlsx → scripts/fetch.js → data.json",
     "heuristics": "scripts/heuristics.js → scripts/heuristics_conditions.js → heuristics_YYYYMMDD.json → main.py /screening?mode=heuristics（codes 指定時は絞り込み）→ app/heuristics_scoring_rules.py → app/heuristics_scoring.py（applied_*_rules を含むスコアを返却）→ screening.js（ tr-trend-up/down・td-heuristics-applied でハイライト表示）"
