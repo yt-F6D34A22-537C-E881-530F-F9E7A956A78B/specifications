@@ -11,7 +11,7 @@
         "sections": {
 		  "designTokens": ":root に定義する CSS カスタムプロパティ。色（--color-*）・シャドウ（--shadow-*）・ボーダー半径（--radius-*）・サイズ（--rci-macd-height 等）・z-index 体系（--z-*）をここで一元管理する。ブレークポイントは CSS カスタムプロパティがメディアクエリ条件内で使用不可のため、:root のコメント（--bp-mobile: 600px）と @media の数値を一致させる運用とする",
 		  "layout": "body, app-container, card の基本レイアウトと配色",
-		  "controls": "条件設定 UI（controls-grid / controls-grid-heuristics / mode-block / mode-block-heuristics / mode-conditions / exclude-markets-fieldset）",
+		  "controls": "条件設定 UI（controls-grid / controls-grid-heuristics / mode-block / mode-block-heuristics / mode-conditions / exclude-markets-fieldset / compare-source-radio）。compare-source-radio は入力方法（CSVアップロード／証券コード指定）のラジオを横並び表示するためのスタイル。exclude-markets-fieldset は width: 100% で親ラベルの残り幅を占有し、#heuristicsCodes の固定幅（200px）との横並びで余白を生じさせない",
 		  "buttons": "primary / secondary / ghost / small ボタンのスタイル",
 		  "resultSectionHeader": ".result-section-header（h2・resultCount・csvDownloadBtn を横並びにするフレックスコンテナ）と .csv-download-btn（右端配置・ホバースタイル・disabled スタイル）",
 		  "table": "固定ヘッダ方式のテーブル構造と列幅同期（table を 2 枚使用し、列幅は screening.js 側で同期）",
@@ -21,7 +21,7 @@
 		  "chartSettings": "チャート設定ポップアップ",
 		  "chartLegend": "チャート凡例の位置・背景・影。スマホ（600px以下）では display: none で非表示にする",
 		  "heuristicsTable": "heuristics テーブルのトレンド色分け（th-bg-trend-up / th-bg-trend-down / th-bg-trend-either）・行背景（tr-trend-up / tr-trend-down）・適用ルールハイライト（td-heuristics-applied）",
-		  "responsive": "600px 以下での UI 最適化。モードブロックのフル幅化・除外市場チェックボックスの折り返し・チャートモーダルのフルスクリーン化・ヘッダの2段折り返し・サブチャート高さ縮小（--rci-macd-height-mobile）・凡例非表示・結果テーブル銘柄名列の固定幅省略表示（ellipsis）とその他列の最小幅確保による視認列数改善・チャート設定ボタン（.chart-settings-btn）のタップ領域拡大（44×44px・bottom余白確保）を含む"
+		  "responsive": "600px 以下での UI 最適化。モードブロックのフル幅化・除外市場チェックボックスの折り返し・チャートモーダルのフルスクリーン化・ヘッダの2段折り返し・サブチャート高さ縮小（--rci-macd-height-mobile）・凡例非表示・結果テーブル銘柄名列の固定幅省略表示（ellipsis）とその他列の最小幅確保による視認列数改善・チャート設定ボタン（.chart-settings-btn）のタップ領域拡大（44×44px・bottom余白確保）・compare モード入力欄（#compareCsvFile/#compareCodes/#compareFromDate/#compareToDateSelect）の幅100%化と入力方法ラジオ（.compare-source-radio）の縦積み化・heuristics証券コード入力欄（#heuristicsCodes）の幅100%化を含む"
 		}
       }
     },
@@ -177,7 +177,8 @@
               "cellHighlight": "applied_up_rules（up行）または applied_down_rules（down行）に含まれる TECH_* キーに対応する td に td-heuristics-applied クラスを付与してハイライト表示する",
               "codesInput": {
                 "element": "#heuristicsCodes",
-                "behavior": "任意入力。証券コード（4桁・カンマ区切りで複数可）が入力されている場合のみ /screening の codes パラメータとして送信し、対象銘柄に絞り込む。未入力時は従来通り全銘柄を対象としたスクリーニングを行う"
+                "behavior": "任意入力。証券コード（4桁・カンマ区切りで複数可）が入力されている場合のみ /screening の codes パラメータとして送信し、対象銘柄に絞り込む。未入力時は従来通り全銘柄を対象としたスクリーニングを行う",
+                "layout": "PC では親ラベルを min-width: 200px の固定幅とし、隣接する exclude-markets-fieldset を flex: 1 1 auto・width: 100% で残り幅に伸長させることで右側の余白を吸収する。600px 以下では幅100%にして他要素と同様に縦積み表示する"
               }
             },
             "compare": {
@@ -198,14 +199,16 @@
               ],
               "sourceRadio": {
                 "element": "input[name='compareSource']（csv / code）",
-                "behavior": "csv 選択時は #compareCsvFile を有効化・#compareCodes を無効化。code 選択時はその逆。スクリーニングに用いる証券コードはこの選択値で決定する"
+                "behavior": "csv 選択時は #compareCsvFile を有効化・#compareCodes を無効化。code 選択時はその逆。スクリーニングに用いる証券コードはこの選択値で決定する",
+                "layout": ".compare-source-radio は PC では flex-direction: row で2択を横並び表示する。600px 以下では flex-direction: column に切り替え縦積みにする"
               },
               "csvUpload": {
                 "fileNamePattern": "screening_<ratio|date|heuristics>_<yyyymmdd>.csv（screening.js の downloadCsv が生成するファイル名と同一形式）",
                 "behavior": "ファイル名から元モード（source_mode）と日付（比較元日付のデフォルト値）を抽出し、CSV本文の「コード」列の値一覧をスクリーニング対象として送信する。ファイル名形式が一致しない場合はエラーメッセージを表示してアップロードを無効化する",
                 "csvParsing": "screening.js 内に実装する簡易CSVパーサ（parseCsvLine）でダブルクォート・カンマを含むセルに対応する。新規ライブラリは追加しない"
               },
-              "predictionDisplay": "予測カラムは formatDirectionMark() で ↗/↘/－ に変換して表示する。null の場合は空白（-）表示"
+              "predictionDisplay": "予測カラムは formatDirectionMark() で ↗/↘/－ に変換して表示する。null の場合は空白（-）表示",
+              "responsiveLayout": "#compareCsvFile / #compareCodes / #compareFromDate / #compareToDateSelect は600px以下で width: 100% にし、画面幅に応じて入力欄を伸縮させる"
             }
           },
           "heuristicsTypes": {
