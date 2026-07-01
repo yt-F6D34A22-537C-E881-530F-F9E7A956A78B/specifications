@@ -84,7 +84,7 @@ https://raw.githubusercontent.com/yt-F6D34A22-537C-E881-530F-F9E7A956A78B/webapp
 ・複数案ある場合はおすすめ順に提示すること
 ・specifications.json の構造・責務・データフローを破壊しないこと
 
-【出力形式」
+【出力形式】
 以下の順番で回答してください。
 
 1.要件の整理
