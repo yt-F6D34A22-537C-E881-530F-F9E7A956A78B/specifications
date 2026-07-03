@@ -11,7 +11,7 @@
         "sections": {
           "designTokens": ":root に定義する CSS カスタムプロパティ。色（--color-*）・シャドウ（--shadow-*）・ボーダー半径（--radius-*）・サイズ（--rci-macd-height 等）・z-index 体系（--z-*）をここで一元管理する。ブレークポイントは CSS カスタムプロパティがメディアクエリ条件内で使用不可のため、:root のコメント（--bp-mobile: 600px）と @media の数値を一致させる運用とする",
           "layout": "body, app-container, card の基本レイアウトと配色",
-          "controls": "条件設定 UI（controls-grid / controls-grid-heuristics / mode-block / mode-block-heuristics / mode-conditions / exclude-markets-fieldset / compare-source-fieldset / compare-source-option / compare-source-label）。exclude-markets-fieldset は width: 100% で親ラベルの残り幅を占有し、#heuristicsCodes の固定幅（200px）との横並びで余白を生じさせない。compare-source-fieldset 配下の compare-source-option は display: grid（grid-template-columns: auto 120px minmax(0, 1fr)）で「ラジオ／ラベル文言（.compare-source-label）／対象入力欄（#compareCsvFile・#compareCodes）」を整列し、CSVアップロード・証券コード指定の2行で入力欄の開始位置を縦に揃える。3列目を minmax(0, 1fr) とすることで、track 幅が利用可能幅を超えて広がらないようにしている。.mode-conditions label（クラス1+要素1）よりセレクタの詳細度を上げるため、compare-source-fieldset 配下にスコープした compare-source-fieldset .compare-source-option として定義している。compare-source-option 配下の input[type=\"text\"] / input[type=\"file\"] は box-sizing: border-box を指定し、width: 100% が padding・border を含めて track 幅にぴったり収まるようにしている（box-sizing 未指定の content-box のままだと padding・border 分だけ右側にはみ出すため）。また #compareConditions（mode-conditions の個別 ID）には align-items: flex-start を指定し、入力方法（compare-source-fieldset）と比較期間（compare-date-fieldset）の高さが異なる場合に、デフォルトの align-items: stretch によって低い方のフィールドセットが引き伸ばされ、内部要素の上部に余計な余白が生じるのを防いでいる",
+          "controls": "条件設定 UI（mode-tabs / mode-tab / mode-panels / mode-panel / mode-conditions / exclude-markets-fieldset / compare-source-fieldset / compare-source-option / compare-source-label）。モード切替は input[name=searchMode] ラジオボタンを .mode-tab 内に視覚的に隠して配置し（opacity: 0）、.mode-tab 全体をタップ領域とするタブ UI。選択中モードの判定と条件パネルの表示・非表示は、.mode-tabs:has(input[value=\"<mode>\"]:checked) ~ .mode-panels .mode-panel[data-mode=\"<mode>\"] という :has() セレクタで CSS のみで行い、JS 側の状態管理（initSearchMode によるフォーム要素の有効・無効化）とは独立している。exclude-markets-fieldset は ratio / heuristics 両モードで共通の DOM 構造・CSS クラスを用い、screening.js の renderExcludeMarketsFieldset() が実行時に動的生成する（詳細は scripts.screening.behavior.renderExcludeMarketsFieldsets を参照）。exclude-markets-fieldset は width: 100% で親ラベルの残り幅を占有し、#heuristicsCodes の固定幅（200px）との横並びで余白を生じさせない。ratio モードでは #ratioConditions に flex-wrap: wrap、当該 label に flex: 1 1 100% を指定し、他の条件（出来高倍率・上髭実体比・日付）と同じ行に詰め込まず次行へ折り返す。compare-source-fieldset 配下の compare-source-option は display: grid（grid-template-columns: auto 120px minmax(0, 1fr)）で「ラジオ／ラベル文言（.compare-source-label）／対象入力欄（#compareCsvFile・#compareCodes）」を整列し、CSVアップロード・証券コード指定の2行で入力欄の開始位置を縦に揃える。3列目を minmax(0, 1fr) とすることで、track 幅が利用可能幅を超えて広がらないようにしている。.mode-conditions label（クラス1+要素1）よりセレクタの詳細度を上げるため、compare-source-fieldset 配下にスコープした compare-source-fieldset .compare-source-option として定義している。compare-source-option 配下の input[type=\"text\"] / input[type=\"file\"] は box-sizing: border-box を指定し、width: 100% が padding・border を含めて track 幅にぴったり収まるようにしている（box-sizing 未指定の content-box のままだと padding・border 分だけ右側にはみ出すため）。また #compareConditions（mode-conditions の個別 ID）には align-items: flex-start を指定し、入力方法（compare-source-fieldset）と比較期間（compare-date-fieldset）の高さが異なる場合に、デフォルトの align-items: stretch によって低い方のフィールドセットが引き伸ばされ、内部要素の上部に余計な余白が生じるのを防いでいる",
           "buttons": "primary / secondary / ghost / small ボタンのスタイル",
           "resultSectionHeader": ".result-section-header（h2・resultCount・compareMatchRate・csvDownloadBtn を横並びにするフレックスコンテナ）と .csv-download-btn（右端配置・ホバースタイル・disabled スタイル）。#compareMatchRate（.compare-match-rate）は compare モード・予測あり時のみ表示し、それ以外は hidden クラスで非表示にする",
           "table": "固定ヘッダ方式のテーブル構造と列幅同期（table を 2 枚使用し、列幅は screening.js 側で同期）",
@@ -21,7 +21,7 @@
           "chartSettings": "チャート設定ポップアップ",
           "chartLegend": "チャート凡例の位置・背景・影。スマホ（600px以下）では display: none で非表示にする",
           "heuristicsTable": "heuristics テーブルのトレンド色分け（th-bg-trend-up / th-bg-trend-down / th-bg-trend-either）・行背景（tr-trend-up / tr-trend-down）・適用ルールハイライト（td-heuristics-applied）",
-          "responsive": "600px 以下での UI 最適化。モードブロックのフル幅化・除外市場チェックボックスの折り返し・チャートモーダルのフルスクリーン化・ヘッダの2段折り返し・サブチャート高さ縮小（--rci-macd-height-mobile）・凡例非表示・結果テーブル銘柄名列の固定幅省略表示（ellipsis）とその他列の最小幅確保による視認列数改善・チャート設定ボタン（.chart-settings-btn）のタップ領域拡大（44×44px・bottom余白確保）・compare モード入力欄（#compareCsvFile/#compareCodes/#compareFromDate/#compareToDateSelect）の幅100%化と box-sizing: border-box によるはみ出し防止・入力方法（compare-source-fieldset .compare-source-option）は600px以下で grid-template-columns を auto 120px minmax(0, 1fr)（PC・3列）から auto 1fr（モバイル・2列）に切り替え、対象入力欄（#compareCsvFile・#compareCodes）を grid-column: 1 / -1 で2行目にフル幅展開する・比較期間（.compare-date-fieldset）の縦積み化と矢印（.compare-date-arrow）の90度回転表示（PC幅では「比較元日付 → 比較先日付」の横向き矢印、600px以下では縦積みレイアウトに合わせ transform: rotate(90deg) で縦向き矢印として表示。文字自体は → のまま、見た目のみ回転）・heuristics証券コード入力欄（#heuristicsCodes）の幅100%化を含む",
+          "responsive": "600px 以下での UI 最適化。モード切替タブの横スクロール表示（.mode-tabs に overflow-x: auto）・条件パネルの縦積み化・除外市場チェックボックスの折り返し・チャートモーダルのフルスクリーン化・ヘッダの2段折り返し・サブチャート高さ縮小（--rci-macd-height-mobile）・凡例非表示・結果テーブル銘柄名列の固定幅省略表示（ellipsis）とその他列の最小幅確保による視認列数改善・チャート設定ボタン（.chart-settings-btn）のタップ領域拡大（44×44px・bottom余白確保）・compare モード入力欄（#compareCsvFile/#compareCodes/#compareFromDate/#compareToDateSelect）の幅100%化と box-sizing: border-box によるはみ出し防止・入力方法（compare-source-fieldset .compare-source-option）は600px以下で grid-template-columns を auto 120px minmax(0, 1fr)（PC・3列）から auto 1fr（モバイル・2列）に切り替え、対象入力欄（#compareCsvFile・#compareCodes）を grid-column: 1 / -1 で2行目にフル幅展開する・比較期間（.compare-date-fieldset）の縦積み化と矢印（.compare-date-arrow）の90度回転表示（PC幅では「比較元日付 → 比較先日付」の横向き矢印、600px以下では縦積みレイアウトに合わせ transform: rotate(90deg) で縦向き矢印として表示。文字自体は → のまま、見た目のみ回転）・heuristics証券コード入力欄（#heuristicsCodes）の幅100%化を含む",
           "compareMatchRate": "compare モードの予測合致率ラベル（.compare-match-rate）。border-left で #resultCount と視覚的に区切る。compare モードかつ予測あり行が1件以上のとき showResults() 内で calcMatchRate() を呼び出し、「合致率：N/M件（R%）　↗ n/m件　↘ n/m件」形式のテキストを設定して hidden クラスを除去する。それ以外のモードまたは予測なし（date / 証券コード直接入力）時は textContent を空にして hidden クラスを付与する"
         }
       }
@@ -54,7 +54,8 @@
                     "mode=ratio",
                     "volume_ratio=<number>",
                     "shadow_ratio=<number>",
-                    "target_date=<yyyymmdd>"
+                    "target_date=<yyyymmdd>",
+                    "exclude_markets=<カンマ区切りの市場・商品区分>（省略可）"
                   ]
                 },
                 "date_ranking": {
@@ -117,7 +118,8 @@
               "controls": [
                 "#volumeRatio",
                 "#shadowRatio",
-                "#ratioDateSelect"
+                "#ratioDateSelect",
+                "#ratioConditions fieldset（除外する市場・商品区分のチェックボックス群）"
               ],
               "tableColumns": [
                 "コード",
@@ -127,7 +129,29 @@
                 "出来高",
                 "上髭",
                 "実体"
-              ]
+              ],
+              "excludeMarkets": {
+                "element": ".exclude-market-checkbox",
+                "fieldset": "#ratioConditions fieldset",
+                "generatedBy": "screening.js の renderExcludeMarketsFieldset(\"ratioConditions\")（heuristics と共通の EXCLUDE_MARKET_OPTIONS / EXCLUDE_MARKET_DEFAULT_CHECKED を参照）",
+                "defaultChecked": [
+                  "ETF・ETN"
+                ],
+                "values": [
+                  "ETF・ETN",
+                  "PRO Market",
+                  "REIT・ベンチャーファンド・カントリーファンド・インフラファンド",
+                  "出資証券",
+                  "グロース（内国株式）",
+                  "グロース（外国株式）",
+                  "スタンダード（内国株式）",
+                  "スタンダード（外国株式）",
+                  "プライム（内国株式）",
+                  "プライム（外国株式）"
+                ],
+                "disableMethod": "fieldset.disabled プロパティで fieldset 単位で有効・無効を切り替える",
+                "behavior": "ratio モード選択時のみ有効化。チェックされた値をカンマ区切りで exclude_markets パラメータとして送信する"
+              }
             },
             "date": {
               "controls": [
@@ -157,6 +181,7 @@
               "excludeMarkets": {
                 "element": ".exclude-market-checkbox",
                 "fieldset": "#heuristicsConditions fieldset",
+                "generatedBy": "screening.js の renderExcludeMarketsFieldset(\"heuristicsConditions\")（ratio と共通の EXCLUDE_MARKET_OPTIONS / EXCLUDE_MARKET_DEFAULT_CHECKED を参照。選択肢・デフォルト値は index.html には存在せず screening.js が唯一のソース）",
                 "defaultChecked": [
                   "ETF・ETN"
                 ],
@@ -265,15 +290,16 @@
           }
         },
         "behavior": {
-          "init": "window.onload で initSearchMode と loadDates と loadHeuristicsDates を実行",
-          "modeSwitch": "searchMode ラジオボタンで ratio/date/heuristics/compare の入力有効・無効を切り替え。heuristics モード時は #heuristicsConditions fieldset を fieldset.disabled で有効化する。compare モード時は compareSource ラジオ（csv/code）の選択値に応じて #compareCsvFile / #compareCodes の有効・無効をさらに切り替える",
+          "init": "window.onload で renderExcludeMarketsFieldsets（initSearchMode より前に実行し、除外市場 fieldset を DOM に生成してから有効・無効の制御対象にする） → initSearchMode → loadDates → loadTradingDates → loadHeuristicsDates の順に実行",
+          "modeSwitch": "見た目は .mode-tabs 配下のタブ UI（searchMode ラジオボタンを非表示化して .mode-tab をタップ領域にする）。表示するモードパネル（.mode-panel）の切替は style.css の :has() セレクタが CSS のみで行う。フォーム要素の有効・無効切替は従来通り JS（initSearchMode）が ratio/date/heuristics/compare それぞれの入力欄・fieldset に対して行う（DOM 構造が変わっても対象のセレクタ・ID は変更していないため、ロジック自体は無改修）。heuristics モード時は #heuristicsConditions fieldset を fieldset.disabled で有効化する。compare モード時は compareSource ラジオ（csv/code）の選択値に応じて #compareCsvFile / #compareCodes の有効・無効をさらに切り替える",
           "startScreening": "入力検証 → テーブルヘッダ更新 → 経過時間カウンタ開始 → /screening 呼び出し → showResults → 列幅同期 → #resultSection へスムーズスクロール",
           "cancelScreening": "AbortController.abort() で fetch を中断",
           "sorting": "固定ヘッダの th[data-sort-key] クリックで currentResults を昇順/降順ソート",
           "rowClick": "行クリックで openChartModal(コード, 銘柄名, index) を呼び出し",
           "resultSharing": "window.setScreeningResults が関数なら、結果配列を渡して呼び出す",
           "fixedHeader": "table-header-sticky と table-scroll-outer の scrollLeft を双方向同期し、列幅は body 側 thead の th 実測幅で sticky 側 thead を同期し、fixed-col は syncFixedColumns で left を再計算する",
-          "getExcludeMarkets": ".exclude-market-checkbox:checked の value をカンマ区切りで返す関数。heuristics モードの fetch 前に呼び出し、1件以上の場合のみ exclude_markets パラメータに設定する",
+          "getExcludeMarkets": "getExcludeMarkets(scopeId): 指定したコンテナ（\"ratioConditions\" または \"heuristicsConditions\"）配下の .exclude-market-checkbox:checked の value をカンマ区切りで返す関数。ratio / heuristics で同じ CSS クラスを共有しているため、DOM 全体ではなくコンテナ単位でスコープする。それぞれのモードの fetch 前に呼び出し、1件以上の場合のみ exclude_markets パラメータに設定する",
+          "renderExcludeMarketsFieldsets": "renderExcludeMarketsFieldset(containerId): 定数 EXCLUDE_MARKET_OPTIONS（選択肢一覧）・EXCLUDE_MARKET_DEFAULT_CHECKED（デフォルトチェック値）から fieldset.exclude-markets-fieldset を動的生成し、指定コンテナ内の [data-exclude-markets-slot] へ挿入する。ratio / heuristics 共通のロジックとして screening.js に一元定義し、index.html 側は空のスロットのみを持つ。renderExcludeMarketsFieldsets() が両モード分をまとめて呼び出す。window.onload の先頭（initSearchMode より前）で実行する必要がある",
           "heuristicsCodesInput": "#heuristicsCodes に値が入力されている場合のみ /screening の codes パラメータとして送信し、heuristics モードの対象銘柄を絞り込む",
           "compareCsvUpload": {
             "trigger": "#compareCsvFile の change イベント",
@@ -550,11 +576,14 @@
               "required": [
                 "target_date"
               ],
+              "parameters": {
+                "exclude_markets": "省略可。カンマ区切りの市場・商品区分文字列。ticker_list の「市場・商品区分」列と照合し、一致する銘柄を除外する（heuristics モードと共通の parse_exclude_markets を使用）"
+              },
               "calculations": [
                 "出来高倍率 = today.v / prev.v",
                 "上髭実体比 = (high - max(open, close)) / abs(close - open)"
               ],
-              "output": "コード昇順"
+              "output": "コード昇順（除外市場フィルタ適用後）"
             },
             "date_ranking": {
               "responsibility": "値上がり率ランキング",
