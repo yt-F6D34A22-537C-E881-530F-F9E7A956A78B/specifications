@@ -688,7 +688,7 @@
         ],
         "runModes": {
           "single": "--date 指定時。指定日を終端として Yahoo Finance API から取得する",
-          "range": "--from と --to 指定時。土日除外の営業日候補を生成し、各日付に対して runForDate を順次実行する。休場日は有効データなしとして自動スキップ",
+          "range": "--from と --to 指定時。土日除外の営業日候補を生成し、各日付に対して runForDate を順次実行する。休場日は有効データなしとして自動スキップ。1日分の生成が完了するたびに commitAndPushDate() で commit・push まで行い、全期間の完了を待たない",
           "normal": "引数なし。従来通り Yahoo Finance 最新日付を自動取得する"
         }
       },
@@ -721,6 +721,15 @@
           "responsibility": "fromDate〜toDate の間で土日を除外した YYYYMMDD 配列を生成する。祝日は fetchCandles 側の有効データなしで自動スキップされる"
         },
         "rangeModeDelay": "日付間で 1000ms 待機して API 負荷を軽減する",
+        "commitAndPushDate": {
+          "signature": "commitAndPushDate(targetDate: string) → void",
+          "responsibility": "range モード専用。runForDate が非 null（＝1日分の heuristics_YYYYMMDD.json 生成に成功）を返した直後に呼び出され、その日付分の成果物（data/heuristics 配下の新規 JSON、および data/backup 配下の追加・8世代超過分の削除）を git add -A → git commit → git push する。全期間の完了を待たずに日付単位でリポジトリへ反映するために導入された",
+          "pushRetry": "git push origin main が失敗した場合は git fetch origin → git rebase -X theirs origin/main → git push origin main でリトライする（.github/workflows/heuristics.yml.pushStrategy と同一方針をスクリプト内に実装したもの）",
+          "noopCondition": "git diff --cached --quiet でステージ済み差分がないと判定された場合は commit/push をスキップする（同一内容の再実行等を想定した安全策）",
+          "errorHandling": "1日分の commit/push に失敗しても例外を外へ投げず、ログ出力のみ行い後続日付の処理を継続する",
+          "scopeNote": "single / normal モードでは呼び出されない。これらのモードは1ファイルのみ生成するため、従来通り .github/workflows/heuristics.yml の最終ステップ（Commit and push changes）でコミットされる",
+          "precondition": "実行前に git の user.name / user.email が設定済みであること。.github/workflows/heuristics.yml の Configure git identity ステップ（Run heuristics script より前に配置）で対応する"
+        },
         "runAllConditions": {
           "valueConversions": {
             "酒田五法": "heuristics_conditions.js は boolean を返すが、runAllConditions 内で boolean ? 1 : null に変換して JSON に保存する。スコアルールの int_val 型（multiplier=2）と対応する",
@@ -1114,7 +1123,23 @@
         "fetch-depth": 0,
         "reason": "stale な origin/main を参照しないよう全履歴を取得する"
       },
-      "pushStrategy": "git push 失敗時は fetch → rebase -X theirs → push でリトライ",
+      "steps": {
+        "order": [
+          "Checkout repository（fetch-depth: 0）",
+          "Setup Node.js（24）",
+          "Install dependencies（node-fetch@3 xlsx）",
+          "Ensure data directory exists（data / data/backup / data/heuristics の mkdir -p）",
+          "Configure git identity（git config --global user.name / user.email）",
+          "Run heuristics script（引数組み立て → node scripts/heuristics.js）",
+          "Commit and push changes（最終コミットステップ。詳細は commitStrategy を参照）"
+        ],
+        "gitIdentityStepPosition": "Configure git identity は Run heuristics script より前に配置する。range モードで scripts/heuristics.js 内の commitAndPushDate() が git commit を実行するため、Node 実行前に user.name / user.email が設定済みである必要がある"
+      },
+      "pushStrategy": "git push 失敗時は fetch → rebase -X theirs → push でリトライ（scripts/heuristics.js.logic.commitAndPushDate.pushRetry と同一方針。range モードではこのリトライは Node スクリプト側で、single/normal モードでは本ワークフローの最終ステップ側で実施される）",
+      "commitStrategy": {
+        "single_normal": "1ファイルのみ生成するため、最終ステップ（Commit and push changes）で1回だけ commit・push する（従来通り）",
+        "range": "scripts/heuristics.js.logic.commitAndPushDate() が、1日分の heuristics_YYYYMMDD.json 生成が完了するたびに commit・push する。全期間の完了を待たない。最終ステップ（Commit and push changes）はこのモードでは基本的に差分なし（no-op、git commit || exit 0 で正常終了）となる安全網として残す"
+      },
       "output": {
         "fileFormat": "heuristics_YYYYMMDD.json",
         "overwrite": "同名ファイルが存在する場合は上書きする",
@@ -1129,6 +1154,6 @@
     "compareScreening": "window.onload の loadTradingDates() → API /trading_dates → #compareFromDate / #compareToDateSelect（共通データソース・直近3か月の市場開場日。デフォルトは先頭＝最新の市場開場日）を構築 → CSVアップロード時は setCompareFromDate() がファイル名日付を選択肢に存在しなければ動的追加した上で選択、extractCodesFromCsv() がコード列と「スコア」列を抽出して uploadedCsvScoreMap を構築 → screening.js（CSVアップロード時は parseCsvLine / extractCodesFromCsv でコード列抽出、証券コード直接入力時はテキスト入力値をそのまま使用・uploadedCsvScoreMap をリセット）→ API /screening?mode=compare（codes・from_date・to_date・source_mode）→ main.py が fetch_close_price で yfinance から個別に終値取得（source_mode=heuristics の場合のみ GitHub Raw の heuristics JSON も取得）→ 増減額・増減率・予測を算出して返却 → showResults() でテーブル描画（列順：スコア・上昇/下降の予測・上昇/下降の結果・比較元DATE終値・比較先DATE終値・増減（円）・増減（％）、行背景色=予測ベース・結果グループセル背景色=結果ベース・予測グループセル背景色=予測ベース）→ calcMatchRate() で合致率を算出して #compareMatchRate に表示",
     "margin": "scripts/margin.js → margin.json（信用取引可否データ）",
     "jpx": "scripts/download-jpx-xlsx.js → data_j.xlsx → scripts/fetch.js → data.json",
-    "heuristics": "scripts/heuristics.js → scripts/heuristics_conditions.js → heuristics_YYYYMMDD.json → main.py /screening?mode=heuristics（codes 指定時は絞り込み）→ app/heuristics_scoring_rules.py → app/heuristics_scoring.py（applied_*_rules を含むスコアを返却）→ screening.js（ tr-trend-up/down・td-heuristics-applied でハイライト表示）"
+    "heuristics": "scripts/heuristics.js → scripts/heuristics_conditions.js → heuristics_YYYYMMDD.json（single/normal モードは .github/workflows/heuristics.yml の最終ステップで、range モードは scripts/heuristics.js の commitAndPushDate() により日付ごとに GitHub へ commit・push） → main.py /screening?mode=heuristics（codes 指定時は絞り込み）→ app/heuristics_scoring_rules.py → app/heuristics_scoring.py（applied_*_rules を含むスコアを返却）→ screening.js（ tr-trend-up/down・td-heuristics-applied でハイライト表示）"
   }
 }
