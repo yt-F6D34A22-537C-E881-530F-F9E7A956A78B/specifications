@@ -14,7 +14,7 @@
           "controls": "条件設定 UI（mode-tabs / mode-tab / mode-panels / mode-panel / mode-conditions / exclude-markets-fieldset / compare-source-fieldset / compare-source-option / compare-source-label）。モード切替は input[name=searchMode] ラジオボタンを .mode-tab 内に視覚的に隠して配置し（opacity: 0）、.mode-tab 全体をタップ領域とするタブ UI。選択中モードの判定と条件パネルの表示・非表示は、.mode-tabs:has(input[value=\"<mode>\"]:checked) ~ .mode-panels .mode-panel[data-mode=\"<mode>\"] という :has() セレクタで CSS のみで行い、JS 側の状態管理（initSearchMode によるフォーム要素の有効・無効化）とは独立している。exclude-markets-fieldset は ratio / heuristics 両モードで共通の DOM 構造・CSS クラスを用い、screening.js の renderExcludeMarketsFieldset() が実行時に動的生成する（詳細は scripts.screening.behavior.renderExcludeMarketsFieldsets を参照）。exclude-markets-fieldset は <label> で囲わず [data-exclude-markets-slot] 直下に配置し、グループ見出しは fieldset 内の <legend>除外する市場・商品区分</legend> で表現する（複数のチェックボックスを単一の <label> で包むと「フォームフィールドに紐付かない label」としてアクセシビリティ監査（axe / Lighthouse）で警告されるため、fieldset + legend を用いる）。exclude-markets-fieldset は width: 100% で [data-exclude-markets-slot] の残り幅を占有し、#heuristicsCodes の固定幅（200px）との横並びで余白を生じさせない。ratio モードでは #ratioConditions に flex-wrap: wrap、#ratioConditions [data-exclude-markets-slot] に flex: 1 1 100% を指定し、他の条件（出来高倍率・上髭実体比・日付）と同じ行に詰め込まず次行へ折り返す。compare-source-fieldset 配下の compare-source-option は display: grid（grid-template-columns: auto 120px minmax(0, 1fr)）で「ラジオ／ラベル文言（.compare-source-label）／対象入力欄（#compareCsvFile・#compareCodes）」を整列し、CSVアップロード・証券コード指定の2行で入力欄の開始位置を縦に揃える。3列目を minmax(0, 1fr) とすることで、track 幅が利用可能幅を超えて広がらないようにしている。.mode-conditions label（クラス1+要素1）よりセレクタの詳細度を上げるため、compare-source-fieldset 配下にスコープした compare-source-fieldset .compare-source-option として定義している。compare-source-option 配下の input[type=\"text\"] / input[type=\"file\"] は box-sizing: border-box を指定し、width: 100% が padding・border を含めて track 幅にぴったり収まるようにしている（box-sizing 未指定の content-box のままだと padding・border 分だけ右側にはみ出すため）。また #compareConditions（mode-conditions の個別 ID）には align-items: flex-start を指定し、入力方法（compare-source-fieldset）と比較期間（compare-date-fieldset）の高さが異なる場合に、デフォルトの align-items: stretch によって低い方のフィールドセットが引き伸ばされ、内部要素の上部に余計な余白が生じるのを防いでいる。なお compare-source-option は現状 1つの <label> がラジオボタンと入力欄（#compareCsvFile / #compareCodes）の2つのフォームコントロールを内包しており、同種のアクセシビリティ改善の余地が残っている（未対応・既知の課題）",
           "buttons": "primary / secondary / ghost / small ボタンのスタイル",
           "resultSectionHeader": ".result-section-header（h2・resultCount・compareMatchRate・csvDownloadBtn を横並びにするフレックスコンテナ）と .csv-download-btn（右端配置・ホバースタイル・disabled スタイル）。#compareMatchRate（.compare-match-rate）は compare モード・予測あり時のみ表示し、それ以外は hidden クラスで非表示にする",
-          "table": "固定ヘッダ方式のテーブル構造と列幅同期（table を 2 枚使用し、列幅は screening.js 側で同期）",
+          "table": "固定ヘッダ方式のテーブル構造と列幅同期（table を 2 枚使用し、列幅は screening.js 側で同期）。固定列の視覚スタイルは class=\"fixed-col\" が担い、JS からの固定列セル特定には data-fixed-col（値なしのフック属性）を用いる（screening.js の syncFixedColumns() を参照）。2枚のテーブルそれぞれを包む div（.table-header-sticky / .table-scroll-outer）は #resultTableStickyWrap / #resultTableScrollOuter という id を持ち、スクロール同期（screening.js）はこの id を用いて要素を取得する。class（.table-header-sticky / .table-scroll-outer）はスタイル定義専用でありJSからは参照しない",
           "loadingOverlay": "最前面のローディング表示",
           "modal": "チャートモーダルのレイアウト・ヘッダー・ボディ",
           "timeframeSelector": "日足/週足/月足の切替 UI",
@@ -131,9 +131,9 @@
                 "実体"
               ],
               "excludeMarkets": {
-                "element": ".exclude-market-checkbox",
+                "element": "data-role=\"exclude-market-checkbox\"（JS からの選択キー。表示スタイル用の class=\"exclude-market-checkbox\" は引き続き付与されるが、DOM 選択には使用しない。命名ルールは conventions.domHookAttributes を参照）",
                 "fieldset": "#ratioConditions fieldset（<legend>除外する市場・商品区分</legend> を先頭に持つ。<label> でチェックボックス群を囲わないアクセシビリティ対応済みの構造）",
-                "generatedBy": "screening.js の renderExcludeMarketsFieldset(\"ratioConditions\")（heuristics と共通の EXCLUDE_MARKET_OPTIONS / EXCLUDE_MARKET_DEFAULT_CHECKED を参照。legend の生成も同関数が行う）",
+                "generatedBy": "screening.js の renderExcludeMarketsFieldset(\"ratioConditions\")（heuristics と共通の EXCLUDE_MARKET_OPTIONS / EXCLUDE_MARKET_DEFAULT_CHECKED を参照。legend の生成も同関数が行う。生成するチェックボックスには class=\"exclude-market-checkbox\"（スタイル用）と data-role=\"exclude-market-checkbox\"（JS選択用）の両方を付与する）",
                 "defaultChecked": [
                   "ETF・ETN"
                 ],
@@ -179,9 +179,9 @@
                 "TECH_* 判定（全項目）"
               ],
               "excludeMarkets": {
-                "element": ".exclude-market-checkbox",
+                "element": "data-role=\"exclude-market-checkbox\"（JS からの選択キー。表示スタイル用の class=\"exclude-market-checkbox\" は引き続き付与されるが、DOM 選択には使用しない。命名ルールは conventions.domHookAttributes を参照）",
                 "fieldset": "#heuristicsConditions fieldset（<legend>除外する市場・商品区分</legend> を先頭に持つ。<label> でチェックボックス群を囲わないアクセシビリティ対応済みの構造）",
-                "generatedBy": "screening.js の renderExcludeMarketsFieldset(\"heuristicsConditions\")（ratio と共通の EXCLUDE_MARKET_OPTIONS / EXCLUDE_MARKET_DEFAULT_CHECKED を参照。選択肢・デフォルト値は index.html には存在せず screening.js が唯一のソース。legend の生成も同関数が行う）",
+                "generatedBy": "screening.js の renderExcludeMarketsFieldset(\"heuristicsConditions\")（ratio と共通の EXCLUDE_MARKET_OPTIONS / EXCLUDE_MARKET_DEFAULT_CHECKED を参照。選択肢・デフォルト値は index.html には存在せず screening.js が唯一のソース。legend の生成も同関数が行う。生成するチェックボックスには class=\"exclude-market-checkbox\"（スタイル用）と data-role=\"exclude-market-checkbox\"（JS選択用）の両方を付与する）",
                 "defaultChecked": [
                   "ETF・ETN"
                 ],
@@ -286,7 +286,10 @@
             "resultCount": "#resultCount",
             "csvDownloadBtn": "#csvDownloadBtn（スクリーニング結果の CSV ダウンロードボタン。結果が 0 件の間は disabled。#resultSection 右上に配置）",
             "resultSection": "#resultSection（スクリーニング完了後のスクロール対象）",
-            "compareMatchRate": "#compareMatchRate（compare モードの予測合致率ラベル。compare モード・予測あり時のみ表示。それ以外は hidden クラスで非表示）"
+            "compareMatchRate": "#compareMatchRate（compare モードの予測合致率ラベル。compare モード・予測あり時のみ表示。それ以外は hidden クラスで非表示）",
+            "resultTableStickyWrap": "#resultTableStickyWrap（固定ヘッダテーブルを包む div。スクロール同期（syncColumnWidths/syncFixedColumns 実行後のスクロール連動）の取得対象。旧 .table-header-sticky class セレクタから変更）",
+            "resultTableScrollOuter": "#resultTableScrollOuter（本体テーブルを包む横スクロール div。スクロール同期の取得対象。旧 .table-scroll-outer class セレクタから変更）",
+            "fixedColHook": "[data-fixed-col]（固定列の th/td を特定するための値なしフック属性。表示スタイルは引き続き class=\"fixed-col\" が担う。旧 nth-child + class セレクタから変更。詳細は conventions.domHookAttributes を参照）"
           }
         },
         "behavior": {
@@ -297,8 +300,8 @@
           "sorting": "固定ヘッダの th[data-sort-key] クリックで currentResults を昇順/降順ソート",
           "rowClick": "行クリックで openChartModal(コード, 銘柄名, index) を呼び出し",
           "resultSharing": "window.setScreeningResults が関数なら、結果配列を渡して呼び出す",
-          "fixedHeader": "table-header-sticky と table-scroll-outer の scrollLeft を双方向同期し、列幅は body 側 thead の th 実測幅で sticky 側 thead を同期し、fixed-col は syncFixedColumns で left を再計算する",
-          "getExcludeMarkets": "getExcludeMarkets(scopeId): 指定したコンテナ（\"ratioConditions\" または \"heuristicsConditions\"）配下の .exclude-market-checkbox:checked の value をカンマ区切りで返す関数。ratio / heuristics で同じ CSS クラスを共有しているため、DOM 全体ではなくコンテナ単位でスコープする。それぞれのモードの fetch 前に呼び出し、1件以上の場合のみ exclude_markets パラメータに設定する",
+          "fixedHeader": "#resultTableStickyWrap と #resultTableScrollOuter（旧 .table-header-sticky / .table-scroll-outer class セレクタから id セレクタへ変更）の scrollLeft を双方向同期し、列幅は body 側 thead の th 実測幅（tHead.rows / row.cells によるライブコレクション参照。querySelectorAll は不使用）で sticky 側 thead を同期し、fixed-col は syncFixedColumns で left を再計算する。syncFixedColumns は本体テーブルの全行を1回だけ走査し、行ごとに row.cells[colIndex] で固定列セルへ直接アクセスして left を設定する（従来の『固定列数 × 全行』ぶん document.querySelectorAll(\":nth-child\") をテーブル全体に対して呼び出す実装から、パフォーマンス改善のため変更した。固定ヘッダ側は [data-fixed-col] の出現順で本体の固定列と対応付ける）",
+          "getExcludeMarkets": "getExcludeMarkets(scopeId): 指定したコンテナ（\"ratioConditions\" または \"heuristicsConditions\"）配下の [data-role=\"exclude-market-checkbox\"]:checked の value をカンマ区切りで返す関数（旧 .exclude-market-checkbox class セレクタから data-role セレクタへ変更。命名ルールは conventions.domHookAttributes を参照）。ratio / heuristics で同じ data-role を共有しているため、DOM 全体ではなくコンテナ単位でスコープする。それぞれのモードの fetch 前に呼び出し、1件以上の場合のみ exclude_markets パラメータに設定する",
           "renderExcludeMarketsFieldsets": "renderExcludeMarketsFieldset(containerId): 定数 EXCLUDE_MARKET_OPTIONS（選択肢一覧）・EXCLUDE_MARKET_DEFAULT_CHECKED（デフォルトチェック値）から fieldset.exclude-markets-fieldset を動的生成し、指定コンテナ内の [data-exclude-markets-slot] へ挿入する。fieldset の先頭には <legend>除外する市場・商品区分</legend> を追加する（グループを <label> で囲むと「フォームフィールドに紐付かない label」としてアクセシビリティ監査で警告されるため、legend でグループ名を表現する）。ratio / heuristics 共通のロジックとして screening.js に一元定義し、index.html 側は空のスロット（<div data-exclude-markets-slot></div>。<label> では囲わない）のみを持つ。renderExcludeMarketsFieldsets() が両モード分をまとめて呼び出す。window.onload の先頭（initSearchMode より前）で実行する必要がある",
           "heuristicsCodesInput": "#heuristicsCodes に値が入力されている場合のみ /screening の codes パラメータとして送信し、heuristics モードの対象銘柄を絞り込む",
           "compareCsvUpload": {
@@ -468,7 +471,10 @@
       "chartMain": {
         "file": "js/chart-main.js",
         "responsibility": "モーダル制御・チャート描画の司令塔",
-        "loadingOverlay": "サーバ通信（fetchChartData）を伴う描画はすべて drawChart() を経由し、drawChart() の先頭でオーバーレイを表示・finally ブロックで非表示にすることで、呼び出し元によらずローディング表示を保証する"
+        "loadingOverlay": "サーバ通信（fetchChartData）を伴う描画はすべて drawChart() を経由し、drawChart() の先頭でオーバーレイを表示・finally ブロックで非表示にすることで、呼び出し元によらずローディング表示を保証する",
+        "elements": {
+          "modalBackdrop": "#chartModalBackdrop（モーダル背景。クリックで closeModal を実行。旧 .modal-backdrop class セレクタから id セレクタへ変更。class は引き続き背景のスタイル定義に使用する）"
+        }
       },
       "loadingOverlaySspec": {
         "rule": "フロントエンドのすべてのサーバ通信は、通信開始前にローディングオーバーレイを表示し、try/finally の finally ブロックで必ず非表示にする",
@@ -479,6 +485,47 @@
         },
         "pattern": "通信関数の先頭でオーバーレイを表示し、try/finally の finally で非表示にする。呼び出し元はオーバーレイを操作しない"
       }
+    }
+  },
+  "conventions": {
+    "domHookAttributes": {
+      "principle": "class 属性は style.css からのみ参照するスタイル専用の属性とする。JavaScript から要素を取得・特定するためのセレクタには class を使用せず、id（単一要素）・name（フォーム部品グループ）・data-*（複数要素の役割付けや値の保持）のいずれかを用いる。class の変更・削除（見た目のリファクタリング）が JS の動作に影響しないようにするための取り決め",
+      "rules": [
+        {
+          "pattern": "id",
+          "usage": "ページ内に1つしか存在しない要素（モーダル本体・オーバーレイ・スクロールコンテナ等）の取得に用いる。既存の #resultTable 等と同様、キャメルケースで命名する",
+          "examples": ["#resultTableStickyWrap", "#resultTableScrollOuter", "#chartModalBackdrop"]
+        },
+        {
+          "pattern": "name",
+          "usage": "ラジオボタン・チェックボックス等、ブラウザ標準のフォームグループ機構（input[name=...]:checked 等）が前提となる要素に用いる（既存踏襲。新規ルールではなく既存パターンの追認）",
+          "examples": ["input[name=\"searchMode\"]", "input[name=\"compareSource\"]"]
+        },
+        {
+          "pattern": "data-<用途名>=\"<値>\"（値保持型）",
+          "usage": "後続処理でその値自体を参照する場合に用いる（既存踏襲）",
+          "examples": ["data-sort-key（ソート対象の列キー）", "data-rule-key（heuristics の TECH_* キー）"]
+        },
+        {
+          "pattern": "data-<用途名>（値なし・フラグ型）",
+          "usage": "値は不要で、「その要素が対象かどうか」の判定だけに用いる",
+          "examples": ["data-fixed-col（固定列として扱う th/td の目印）"]
+        },
+        {
+          "pattern": "data-role=\"<役割名>\"（役割グルーピング型）",
+          "usage": "同じ役割を持つ複数要素を、用途に応じたグループとしてまとめて選択する場合に用いる。class を選択キーに流用したくなる典型的なケース（同一クラスを持つ要素群からチェック状態や値を集計したい等）はここに該当する",
+          "examples": ["data-role=\"exclude-market-checkbox\"（除外市場チェックボックス群。ratio / heuristics 両モードで共有）"]
+        }
+      ],
+      "rationale": "class は複数要素・複数箇所で見た目の一貫性を保つために再利用される属性であり、スタイル変更のたびに書き換わりうる。JS 側の要素取得を id/name/data-* に切り出すことで、CSS 側のクラス名変更・構造変更が screening.js / chart-main.js 等の動作に影響しないようにする",
+      "appliedIn": [
+        "screening.js の getExcludeMarkets()（data-role）",
+        "screening.js の syncFixedColumns()（data-fixed-col・#resultTableSticky）",
+        "screening.js のソート処理 th 特定（#resultTableSticky）",
+        "screening.js のスクロール同期（#resultTableStickyWrap / #resultTableScrollOuter）",
+        "chart-main.js の背景クリックによるモーダル閉鎖（#chartModalBackdrop）"
+      ],
+      "history": "初版策定時点（本セクション追加時）で、screening.js / chart-main.js 内に残存していた class セレクタ（.exclude-market-checkbox / .table-header-sticky / .table-scroll-outer / .fixed-col / .modal-backdrop）をすべて本ルールに沿って移行済み。以後の新規実装・改修においても本ルールを適用すること"
     }
   },
   "backend": {
