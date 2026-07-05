@@ -271,7 +271,6 @@
           "elements": {
             "startBtn": "#startBtn",
             "cancelBtn": "#cancelBtn",
-            "progressText": "#progressText",
             "elapsedTime": "#elapsedTime",
             "tbody": "#resultTable tbody",
             "dateSelect": "#dateSelect",
