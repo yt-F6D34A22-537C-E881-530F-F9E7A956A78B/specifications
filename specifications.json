@@ -14,13 +14,13 @@
           "controls": "条件設定 UI（mode-tabs / mode-tab / mode-panels / mode-panel / mode-conditions / exclude-markets-fieldset / compare-source-fieldset / compare-source-option / compare-source-label）。モード切替は input[name=searchMode] ラジオボタンを .mode-tab 内に視覚的に隠して配置し（opacity: 0）、.mode-tab 全体をタップ領域とするタブ UI。選択中モードの判定と条件パネルの表示・非表示は、.mode-tabs:has(input[value=\"<mode>\"]:checked) ~ .mode-panels .mode-panel[data-mode=\"<mode>\"] という :has() セレクタで CSS のみで行い、JS 側の状態管理（initSearchMode によるフォーム要素の有効・無効化）とは独立している。exclude-markets-fieldset は ratio / heuristics 両モードで共通の DOM 構造・CSS クラスを用い、screening.js の renderExcludeMarketsFieldset() が実行時に動的生成する（詳細は scripts.screening.behavior.renderExcludeMarketsFieldsets を参照）。exclude-markets-fieldset は <label> で囲わず [data-exclude-markets-slot] 直下に配置し、グループ見出しは fieldset 内の <legend>除外する市場・商品区分</legend> で表現する（複数のチェックボックスを単一の <label> で包むと「フォームフィールドに紐付かない label」としてアクセシビリティ監査（axe / Lighthouse）で警告されるため、fieldset + legend を用いる）。exclude-markets-fieldset は width: 100% で [data-exclude-markets-slot] の残り幅を占有し、#heuristicsCodes の固定幅（200px）との横並びで余白を生じさせない。ratio モードでは #ratioConditions に flex-wrap: wrap、#ratioConditions [data-exclude-markets-slot] に flex: 1 1 100% を指定し、他の条件（出来高倍率・上髭実体比・日付）と同じ行に詰め込まず次行へ折り返す。compare-source-fieldset 配下の compare-source-option は display: grid（grid-template-columns: auto 120px minmax(0, 1fr)）で「ラジオ／ラベル文言（.compare-source-label）／対象入力欄（#compareCsvFile・#compareCodes）」を整列し、CSVアップロード・証券コード指定の2行で入力欄の開始位置を縦に揃える。3列目を minmax(0, 1fr) とすることで、track 幅が利用可能幅を超えて広がらないようにしている。.mode-conditions label（クラス1+要素1）よりセレクタの詳細度を上げるため、compare-source-fieldset 配下にスコープした compare-source-fieldset .compare-source-option として定義している。compare-source-option 配下の input[type=\"text\"] / input[type=\"file\"] は box-sizing: border-box を指定し、width: 100% が padding・border を含めて track 幅にぴったり収まるようにしている（box-sizing 未指定の content-box のままだと padding・border 分だけ右側にはみ出すため）。また #compareConditions（mode-conditions の個別 ID）には align-items: flex-start を指定し、入力方法（compare-source-fieldset）と比較期間（compare-date-fieldset）の高さが異なる場合に、デフォルトの align-items: stretch によって低い方のフィールドセットが引き伸ばされ、内部要素の上部に余計な余白が生じるのを防いでいる。なお compare-source-option は現状 1つの <label> がラジオボタンと入力欄（#compareCsvFile / #compareCodes）の2つのフォームコントロールを内包しており、同種のアクセシビリティ改善の余地が残っている（未対応・既知の課題）",
           "buttons": "primary / secondary / ghost / small ボタンのスタイル",
           "resultSectionHeader": ".result-section-header（h2・resultCount・compareMatchRate・csvDownloadBtn を横並びにするフレックスコンテナ）と .csv-download-btn（右端配置・ホバースタイル・disabled スタイル）。#compareMatchRate（.compare-match-rate）は compare モード・予測あり時のみ表示し、それ以外は hidden クラスで非表示にする",
-          "table": "固定ヘッダ方式のテーブル構造と列幅同期（table を 2 枚使用し、列幅は screening.js 側で同期）。固定列の視覚スタイルは class=\"fixed-col\" が担い、JS からの固定列セル特定には data-fixed-col（値なしのフック属性）を用いる（screening.js の syncFixedColumns() を参照）。2枚のテーブルそれぞれを包む div（.table-header-sticky / .table-scroll-outer）は #resultTableStickyWrap / #resultTableScrollOuter という id を持ち、スクロール同期（screening.js）はこの id を用いて要素を取得する。class（.table-header-sticky / .table-scroll-outer）はスタイル定義専用でありJSからは参照しない",
+          "table": "固定ヘッダ方式のテーブル構造と列幅同期（table を 2 枚使用し、列幅は screening.js 側で同期）。固定列の視覚スタイルは class=\"fixed-col\" が担い、JS からの固定列セル特定には data-fixed-col（値なしのフック属性）を用いる（screening.js の syncFixedColumns() を参照）。2枚のテーブルそれぞれを包む div（.table-header-sticky / .table-scroll-outer）は #resultTableStickyWrap / #resultTableScrollOuter という id を持ち、スクロール同期（screening.js）はこの id を用いて要素を取得する。class（.table-header-sticky / .table-scroll-outer）はスタイル定義専用でありJSからは参照しない。なお .table-scroll-body という類似名のルールが style.css に残存していたが、HTML/JS のどこからも参照されない孤立ルール（.table-scroll-outer へのリネーム時の残骸と推定）だったため 2026-07 の監査で削除した",
           "loadingOverlay": "最前面のローディング表示",
           "modal": "チャートモーダルのレイアウト・ヘッダー・ボディ",
           "timeframeSelector": "日足/週足/月足の切替 UI",
           "chartSettings": "チャート設定ポップアップ",
           "chartLegend": "チャート凡例の位置・背景・影。スマホ（600px以下）では display: none で非表示にする",
-          "heuristicsTable": "heuristics テーブルのトレンド色分け（th-bg-trend-up / th-bg-trend-down / th-bg-trend-either）・行背景（tr-trend-up / tr-trend-down）・適用ルールハイライト（td-heuristics-applied）",
+          "heuristicsTable": "heuristics テーブルのトレンド色分け（th-bg-trend-up / th-bg-trend-down / th-bg-trend-either）・行背景（tr-trend-up / tr-trend-down）・適用ルールハイライト（td-heuristics-applied）。TECH_* 判定の ○ 表示には .tech-true（screening.js が truthy 時にのみ付与。scripts.screening.behavior.techValueToText を参照）を用いる。対をなす .tech-false（および design token の --color-tech-false）は style.css に定義されていたが、screening.js が × 側では span を生成せず class を一切付与しないため常に未適用のデッドコードだった。× に色付けする仕様は存在しないと判断し、2026-07 の監査で削除した",
           "responsive": "600px 以下での UI 最適化。モード切替タブの横スクロール表示（.mode-tabs に overflow-x: auto）・条件パネルの縦積み化・除外市場チェックボックスの折り返し・チャートモーダルのフルスクリーン化・ヘッダの2段折り返し・サブチャート高さ縮小（--rci-macd-height-mobile）・凡例非表示・結果テーブル銘柄名列の固定幅省略表示（ellipsis）とその他列の最小幅確保による視認列数改善・チャート設定ボタン（.chart-settings-btn）のタップ領域拡大（44×44px・bottom余白確保）・compare モード入力欄（#compareCsvFile/#compareCodes/#compareFromDate/#compareToDateSelect）の幅100%化と box-sizing: border-box によるはみ出し防止・入力方法（compare-source-fieldset .compare-source-option）は600px以下で grid-template-columns を auto 120px minmax(0, 1fr)（PC・3列）から auto 1fr（モバイル・2列）に切り替え、対象入力欄（#compareCsvFile・#compareCodes）を grid-column: 1 / -1 で2行目にフル幅展開する・比較期間（.compare-date-fieldset）の縦積み化と矢印（.compare-date-arrow）の90度回転表示（PC幅では「比較元日付 → 比較先日付」の横向き矢印、600px以下では縦積みレイアウトに合わせ transform: rotate(90deg) で縦向き矢印として表示。文字自体は → のまま、見た目のみ回転）・heuristics証券コード入力欄（#heuristicsCodes）の幅100%化を含む",
           "compareMatchRate": "compare モードの予測合致率ラベル（.compare-match-rate）。border-left で #resultCount と視覚的に区切る。compare モードかつ予測あり行が1件以上のとき showResults() 内で calcMatchRate() を呼び出し、「合致率：N/M件（R%）　↗ n/m件　↘ n/m件」形式のテキストを設定して hidden クラスを除去する。それ以外のモードまたは予測なし（date / 証券コード直接入力）時は textContent を空にして hidden クラスを付与する"
         }
@@ -131,9 +131,9 @@
                 "実体"
               ],
               "excludeMarkets": {
-                "element": "data-role=\"exclude-market-checkbox\"（JS からの選択キー。表示スタイル用の class=\"exclude-market-checkbox\" は引き続き付与されるが、DOM 選択には使用しない。命名ルールは conventions.domHookAttributes を参照）",
+                "element": "data-role=\"exclude-market-checkbox\"（JS からの選択キー。命名ルールは conventions.domHookAttributes を参照。旧く付与していた class=\"exclude-market-checkbox\" は対応する CSS ルールが存在せず JS からも参照されない未使用属性だったため、2026-07 の監査で削除済み）",
                 "fieldset": "#ratioConditions fieldset（<legend>除外する市場・商品区分</legend> を先頭に持つ。<label> でチェックボックス群を囲わないアクセシビリティ対応済みの構造）",
-                "generatedBy": "screening.js の renderExcludeMarketsFieldset(\"ratioConditions\")（heuristics と共通の EXCLUDE_MARKET_OPTIONS / EXCLUDE_MARKET_DEFAULT_CHECKED を参照。legend の生成も同関数が行う。生成するチェックボックスには class=\"exclude-market-checkbox\"（スタイル用）と data-role=\"exclude-market-checkbox\"（JS選択用）の両方を付与する）",
+                "generatedBy": "screening.js の renderExcludeMarketsFieldset(\"ratioConditions\")（heuristics と共通の EXCLUDE_MARKET_OPTIONS / EXCLUDE_MARKET_DEFAULT_CHECKED を参照。legend の生成も同関数が行う。生成するチェックボックスには data-role=\"exclude-market-checkbox\"（JS選択用）のみを付与する。旧く付与していた class=\"exclude-market-checkbox\" は未使用のため 2026-07 に削除済み）",
                 "defaultChecked": [
                   "ETF・ETN"
                 ],
@@ -179,9 +179,9 @@
                 "TECH_* 判定（全項目）"
               ],
               "excludeMarkets": {
-                "element": "data-role=\"exclude-market-checkbox\"（JS からの選択キー。表示スタイル用の class=\"exclude-market-checkbox\" は引き続き付与されるが、DOM 選択には使用しない。命名ルールは conventions.domHookAttributes を参照）",
+                "element": "data-role=\"exclude-market-checkbox\"（JS からの選択キー。命名ルールは conventions.domHookAttributes を参照。旧く付与していた class=\"exclude-market-checkbox\" は対応する CSS ルールが存在せず JS からも参照されない未使用属性だったため、2026-07 の監査で削除済み）",
                 "fieldset": "#heuristicsConditions fieldset（<legend>除外する市場・商品区分</legend> を先頭に持つ。<label> でチェックボックス群を囲わないアクセシビリティ対応済みの構造）",
-                "generatedBy": "screening.js の renderExcludeMarketsFieldset(\"heuristicsConditions\")（ratio と共通の EXCLUDE_MARKET_OPTIONS / EXCLUDE_MARKET_DEFAULT_CHECKED を参照。選択肢・デフォルト値は index.html には存在せず screening.js が唯一のソース。legend の生成も同関数が行う。生成するチェックボックスには class=\"exclude-market-checkbox\"（スタイル用）と data-role=\"exclude-market-checkbox\"（JS選択用）の両方を付与する）",
+                "generatedBy": "screening.js の renderExcludeMarketsFieldset(\"heuristicsConditions\")（ratio と共通の EXCLUDE_MARKET_OPTIONS / EXCLUDE_MARKET_DEFAULT_CHECKED を参照。選択肢・デフォルト値は index.html には存在せず screening.js が唯一のソース。legend の生成も同関数が行う。生成するチェックボックスには data-role=\"exclude-market-checkbox\"（JS選択用）のみを付与する。旧く付与していた class=\"exclude-market-checkbox\" は未使用のため 2026-07 に削除済み）",
                 "defaultChecked": [
                   "ETF・ETN"
                 ],
@@ -366,22 +366,13 @@
       },
       "chartIndicators": {
         "file": "js/chart-indicators.js",
-        "responsibility": "チャート用インジケータ計算モジュール（MA / Ichimoku / BB / RCI / MACD）",
+        "responsibility": "チャート用インジケータ計算モジュール（MA / BB / RCI / MACD）。ES Module として calcMA / calcBB / calcRCI / calcMACD を export する（calcEMA は calcMACD 内部専用のため非公開）",
+        "moduleType": "ESM（type=\"module\"）。chart-price.js / chart-rci.js / chart-macd.js から import される",
         "functions": {
           "calcMA": {
             "input": "data[{time, close}]",
             "output": "SMA（期間可変）",
-            "usedBy": "chart-price.js"
-          },
-          "calcIchimoku": {
-            "components": [
-              "tenkan(9)",
-              "kijun(26)",
-              "span1(転換線+基準線の平均を26本先)",
-              "span2(52期間高値安値の平均を26本先)",
-              "chikou(26本前)"
-            ],
-            "usedBy": "chart-price.js"
+            "usedBy": "chart-price.js（import）"
           },
           "calcBB": {
             "period": 20,
@@ -391,16 +382,16 @@
               "upper",
               "lower"
             ],
-            "usedBy": "chart-price.js"
+            "usedBy": "chart-price.js（import）"
           },
           "calcRCI": {
             "period": 9,
             "logic": "順位相関係数",
-            "usedBy": "chart-rci.js"
+            "usedBy": "chart-rci.js（import）"
           },
           "calcEMA": {
             "purpose": "MACD 計算の基礎",
-            "usedBy": "calcMACD"
+            "usedBy": "calcMACD（同一ファイル内。export しない）"
           },
           "calcMACD": {
             "shortPeriod": 12,
@@ -411,9 +402,10 @@
               "signalData",
               "histData"
             ],
-            "usedBy": "chart-macd.js"
+            "usedBy": "chart-macd.js（import）"
           }
-        }
+        },
+        "history": "calcIchimoku は本ファイルにも同名の実装が存在したが、chart-price.js 側の実装とスクリプト読み込み順の関係で常に上書きされ、一度も実行されないデッドコードだったため 2026-07 の監査で削除した。一目均衡表の計算は chart-price.js の内部関数 calcIchimoku（非 export）に一本化されている。詳細は chartPrice.functions.calcIchimoku を参照"
       },
       "chartData": {
         "file": "js/chart-data.js",
@@ -449,31 +441,77 @@
             "fetch エラー時も同様にリトライし、全試行失敗時に null を返す"
           ]
         },
-        "usedBy": "chart-main.js（drawChart → fetchChartData）"
+        "usedBy": "chart-main.js（drawChart → fetchChartData。import）",
+        "moduleType": "ESM（type=\"module\"）。fetchChartData を export し、chart-main.js から import される"
       },
       "chartPrice": {
         "file": "js/chart-price.js",
-        "responsibility": "ローソク足 + 出来高 + MA + BB + 一目均衡表の描画"
+        "responsibility": "ローソク足 + 出来高 + MA + BB + 一目均衡表の描画",
+        "moduleType": "ESM（type=\"module\"）",
+        "imports": "chart-indicators.js から calcMA / calcBB を import",
+        "exports": {
+          "createPriceChart": "createPriceChart(priceChart, chartContainer, candleData)。chartContainer は旧実装ではファイル内から chart-main.js のグローバル変数を直接参照していたが、ES Modules 化に伴い引数として明示的に受け取る形に変更した",
+          "setShowCandles / setShowMA / setShowBB / setShowIchimoku": "各表示トグル用セッター関数。呼び出すと内部フラグ（showCandles 等）を更新した上で対応する apply*Visibility() を実行する。旧実装では chart-main.js のチェックボックス変更イベント内で `showCandles = e.target.checked` のようにグローバル変数へ直接代入していたが、ES Modules 化によりモジュール外からの変数直接代入ができなくなったため、これらのセッター経由に変更した"
+        },
+        "functions": {
+          "calcIchimoku": {
+            "scope": "本ファイル内のみで完結する非公開関数（export しない）",
+            "components": [
+              "tenkan(9)",
+              "kijun(26)",
+              "span1(転換線+基準線の平均を26本先)",
+              "span2(52期間高値安値の平均を26本先)",
+              "chikou(26本前)"
+            ],
+            "usedBy": "createPriceChart（同一ファイル内）",
+            "note": "旧 chart-indicators.js にも同名の重複実装が存在したが、常に本ファイルの実装で上書きされ旧実装は未実行だった（2026-07 に旧実装を削除。詳細は chartIndicators.history を参照）"
+          }
+        }
       },
       "chartRci": {
         "file": "js/chart-rci.js",
-        "responsibility": "RCI(9) と RCI(26) の描画"
+        "responsibility": "RCI(9) と RCI(26) の描画",
+        "moduleType": "ESM（type=\"module\"）",
+        "imports": "chart-indicators.js から calcRCI を import",
+        "exports": {
+          "createRciChart": "createRciChart(rciContainer, candleData) → { chart }。rciContainer は引数として受け取る（旧実装は chart-main.js のグローバル変数を直接参照）。内部の chart インスタンス・rciShortSeries・rciLongSeries は本関数内のローカル変数として宣言する（旧実装は宣言なしの暗黙グローバル代入だったが、ES Modules は strict mode 必須のため明示宣言に変更）"
+        }
       },
       "chartMacd": {
         "file": "js/chart-macd.js",
-        "responsibility": "MACD + Signal + Histogram の描画"
+        "responsibility": "MACD + Signal + Histogram の描画",
+        "moduleType": "ESM（type=\"module\"）",
+        "imports": "chart-indicators.js から calcMACD を import",
+        "exports": {
+          "createMacdChart": "createMacdChart(macdContainer, candleData) → { chart }。chartRci と同様の理由で macdContainer を引数化し、chart・macdLineSeries・macdSignalSeries・macdHistSeries を関数内ローカル変数として明示宣言する"
+        }
       },
       "chartSync": {
         "file": "js/chart-sync.js",
-        "responsibility": "チャート同期・リサイズ処理・初期表示範囲"
+        "responsibility": "チャート同期・リサイズ処理・初期表示範囲",
+        "moduleType": "ESM（type=\"module\"）",
+        "exports": {
+          "bindTimeSync": "bindTimeSync(srcChart, targetCharts)",
+          "setupResize": "setupResize(priceChart, rciChart, macdChart, chartContainer, rciContainer, macdContainer)。3つの container 要素は旧実装では chart-main.js のグローバル変数を直接参照していたが、引数化した",
+          "applyDefaultRange": "applyDefaultRange(priceChart, rciChart, macdChart, candleData)"
+        },
+        "internalState": "isSyncing（同期処理の再帰防止フラグ）は本ファイル内に閉じたモジュールスコープ変数とする。旧実装では chart-main.js のトップレベル変数をグローバルスコープ共有で参照していたが、本ファイル内でのみ使用するためモジュール化に伴い内部化した"
       },
       "chartMain": {
         "file": "js/chart-main.js",
         "responsibility": "モーダル制御・チャート描画の司令塔",
+        "moduleType": "ESM（type=\"module\"）。index.html から <script type=\"module\" src=\"js/chart-main.js\"> の1本のみで読み込まれるエントリーポイント。chart-data.js / chart-price.js / chart-rci.js / chart-macd.js / chart-sync.js を import し、依存関係の解決はモジュール側（ブラウザの ESM ローダー）に委ねる",
         "loadingOverlay": "サーバ通信（fetchChartData）を伴う描画はすべて drawChart() を経由し、drawChart() の先頭でオーバーレイを表示・finally ブロックで非表示にすることで、呼び出し元によらずローディング表示を保証する",
         "elements": {
           "modalBackdrop": "#chartModalBackdrop（モーダル背景。クリックで closeModal を実行。旧 .modal-backdrop class セレクタから id セレクタへ変更。class は引き続き背景のスタイル定義に使用する）"
-        }
+        },
+        "windowExports": "screening.js（非モジュールの classic script のまま）との連携のため、window.setScreeningResults / window.openChartModal / window.showPrev / window.showNext を明示的に window オブジェクトへ代入する。ESM 化後もこの方式は変更していない（window への代入はモジュールスコープの制約を受けないため）"
+      },
+      "moduleArchitecture": {
+        "history": "2026-07 にチャート関連スクリプト（chart-data.js / chart-indicators.js / chart-price.js / chart-rci.js / chart-macd.js / chart-sync.js / chart-main.js）を非モジュールの classic script（<script defer> を6本個別に読み込む方式）から ES Modules（import/export）へ移行した。動機は、非モジュール構成では全スクリプトがグローバルスコープを共有するため、chart-indicators.js と chart-price.js に同名関数 calcIchimoku が存在した際にスクリプト読み込み順で暗黙に上書きされ、片方が実行されないデッドコードになっていたため。移行に伴い、各ファイル内で宣言なしの暗黙グローバル変数（rciShortSeries 等）に依存していた箇所は明示的な const/let 宣言に、chart-main.js のグローバル変数（chartContainer 等の DOM 要素・showCandles 等の表示フラグ）を暗黙参照していた箇所は関数引数またはセッター関数経由の明示的な受け渡しに、それぞれ変更した",
+        "loadedAs": "index.html では chart-main.js のみを <script type=\"module\"> で読み込み、他の chart-*.js は chart-main.js からの import チェーンで解決される。screening.js は本移行の対象外で、従来どおり <script defer> の classic script のまま",
+        "hostingCompatibility": "type=\"module\" はビルド・バンドルなしの静的ファイル配信（本アプリの GitHub 経由でのホスティング方式）でもそのまま動作するため、配信方式の変更は不要。ただし file:// で直接開く場合はブラウザの CORS 制約によりモジュールが読み込めない点に留意する",
+        "moduleExecutionOrder": "type=\"module\" のスクリプトは classic script の defer と同様、DOM パース後・文書内の出現順で実行される。screening.js（defer）→ chart-main.js（module）という記述順は移行前後で変えていないため、実行順序は従来と同じ"
       },
       "loadingOverlaySspec": {
         "rule": "フロントエンドのすべてのサーバ通信は、通信開始前にローディングオーバーレイを表示し、try/finally の finally ブロックで必ず非表示にする",
@@ -524,7 +562,7 @@
         "screening.js のスクロール同期（#resultTableStickyWrap / #resultTableScrollOuter）",
         "chart-main.js の背景クリックによるモーダル閉鎖（#chartModalBackdrop）"
       ],
-      "history": "初版策定時点（本セクション追加時）で、screening.js / chart-main.js 内に残存していた class セレクタ（.exclude-market-checkbox / .table-header-sticky / .table-scroll-outer / .fixed-col / .modal-backdrop）をすべて本ルールに沿って移行済み。以後の新規実装・改修においても本ルールを適用すること"
+      "history": "初版策定時点（本セクション追加時）で、screening.js / chart-main.js 内に残存していた class セレクタ（.exclude-market-checkbox / .table-header-sticky / .table-scroll-outer / .fixed-col / .modal-backdrop）をすべて本ルールに沿って移行済み。以後の新規実装・改修においても本ルールを適用すること。なお .exclude-market-checkbox については、移行時点では data-role と並行して class 属性自体は付与し続けていたが（スタイル用として残置）、対応する CSS ルールが実際には存在せず未使用のままだったため、2026-07 の監査で class 属性の付与自体を完全に削除した（screening.js の renderExcludeMarketsFieldset() を参照）"
     }
   },
   "backend": {
