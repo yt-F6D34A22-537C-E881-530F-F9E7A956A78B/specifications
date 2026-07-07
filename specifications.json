@@ -466,6 +466,10 @@
             "usedBy": "createPriceChart（同一ファイル内）",
             "note": "旧 chart-indicators.js にも同名の重複実装が存在したが、常に本ファイルの実装で上書きされ旧実装は未実行だった（2026-07 に旧実装を削除。詳細は chartIndicators.history を参照）"
           }
+        },
+        "indicatorParameters": {
+          "movingAverages": "calcMA（chart-indicators.js から import）を 5 / 25 / 50 / 75 / 100 の5期間で呼び出す（ma5〜ma100Series）",
+          "bollingerBands": "calcBB（chart-indicators.js から import）を period=20・k(σ)=2 で呼び出す（chartIndicators.functions.calcBB の sigma と同一パラメータ）"
         }
       },
       "chartRci": {
@@ -502,6 +506,27 @@
         "responsibility": "モーダル制御・チャート描画の司令塔",
         "moduleType": "ESM（type=\"module\"）。index.html から <script type=\"module\" src=\"js/chart-main.js\"> の1本のみで読み込まれるエントリーポイント。chart-data.js / chart-price.js / chart-rci.js / chart-macd.js / chart-sync.js を import し、依存関係の解決はモジュール側（ブラウザの ESM ローダー）に委ねる",
         "loadingOverlay": "サーバ通信（fetchChartData）を伴う描画はすべて drawChart() を経由し、drawChart() の先頭でオーバーレイを表示・finally ブロックで非表示にすることで、呼び出し元によらずローディング表示を保証する",
+        "viewportHeightFix": "updateVh(): window.innerHeight * 0.01 を CSS カスタムプロパティ --vh として documentElement に設定する（iOS Safari 等でアドレスバーの表示・非表示により 100vh の実際の高さが変動する問題への対策）。モジュール読み込み時に1回実行した上で window の resize イベントでも再計算する。style.css の .modal .modal-content（PC: height: calc(var(--vh, 1vh) * 90)／600px以下: calc(var(--vh, 1vh) * 100)）が本値を参照する",
+        "modalLifecycle": {
+          "openChartModal": "openChartModal(ticker, name, index)（window.openChartModal として公開）。currentIndex を更新し、#chartHeaderLeft に銘柄コード・銘柄名・「（現在位置/全件数）」を描画した上でモーダルを表示（display: flex）する。表示直後は #chartContainer の高さが未確定（レイアウト未反映）な場合があるため、requestAnimationFrame を二重に重ねた上で waitForHeight() が #chartContainer の getBoundingClientRect().height > 0 になるまで setTimeout(30ms) でポーリングしてから drawChart() を呼び出す",
+          "closeModal": "モーダルを非表示にし、priceChart / rciChart / macdChart の3インスタンスを remove() した上で必ず null に戻す（二重 remove 防止）。各コンテナの innerHTML も空にする。#closeChartBtn クリックおよび #chartModalBackdrop クリックの双方から呼び出す",
+          "navigation": "前へ/次へは screeningResults 配列を currentIndex 基準で前後にラップアラウンド（(currentIndex ± 1 + length) % length）し、window.openChartModal を再呼び出しすることで実現する。#prevChartBtn / #nextChartBtn クリック（window.showPrev / window.showNext を経由）に加え、モーダル表示中（modal.style.display === \"flex\"）は矢印キー（ArrowLeft / ArrowRight）の keydown イベントでも同じ関数を呼び出す"
+        },
+        "chartSettingsModal": "#chartSettingsBtn クリックで #chartSettingsModal の hidden クラスを toggle する。document 全体の click イベントで、クリック対象が設定モーダル内でも #chartSettingsBtn でもない場合に hidden クラスを付与して閉じる（モーダル外クリックで閉じる）。#toggleCandles / #toggleMA / #toggleBB / #toggleIchimoku の change イベントはそれぞれ chart-price.js の setShowCandles / setShowMA / setShowBB / setShowIchimoku を呼び出す",
+        "timeframeSwitch": "input[name=\"timeframe\"] の change イベントで currentTimeframe を更新し、screeningResults[currentIndex] が存在すれば同一銘柄のまま drawChart() を再実行して足種を切り替える",
+        "drawChart": {
+          "signature": "drawChart(ticker, name)（非公開・モジュール内関数）",
+          "flow": [
+            "#chartLoadingOverlay を表示（try の前）",
+            "fetchChartData(ticker, currentTimeframe) を呼び出し、null またはデータ0件の場合は alert() を表示して終了する（finally でオーバーレイは必ず非表示になる）",
+            "既存の priceChart / rciChart / macdChart を remove()（closeModal 側で null 化済みのため二重 remove は起きない）し、各コンテナの innerHTML をクリアする",
+            "価格チャート本体（LightweightCharts.createChart）を chart-main.js 側で直接生成し、日本語ロケール・日付ティック整形（M/D）を適用する。この priceChart インスタンスを createPriceChart（chart-price.js）へ渡してシリーズ生成・イベント登録を行わせる（createPriceChart の戻り値 { chart: priceChart } はここでは使用せず、chart-main.js 側で改めて const price = { chart: priceChart } を組み立てて以降の同期・リサイズ処理に用いる）",
+            "createRciChart / createMacdChart を呼び出し、戻り値の chart をそれぞれ rciChart / macdChart に代入する",
+            "bindTimeSync を price/rci/macd の3方向すべてに対して呼び出し、いずれか1つを操作した際に他2つの表示範囲を追随させる",
+            "setupResize（chart-sync.js）でウィンドウリサイズ時の3チャート再描画を登録する",
+            "applyDefaultRange（chart-sync.js）で直近4ヶ月を初期表示範囲として設定した後、直近80本（論理バー番号ベース、setVisibleLogicalRange）に上書きすることで最終的な初期表示範囲とする"
+          ]
+        },
         "elements": {
           "modalBackdrop": "#chartModalBackdrop（モーダル背景。クリックで closeModal を実行。旧 .modal-backdrop class セレクタから id セレクタへ変更。class は引き続き背景のスタイル定義に使用する）"
         },
