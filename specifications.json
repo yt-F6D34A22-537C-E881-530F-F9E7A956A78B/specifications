@@ -1254,6 +1254,46 @@
         "overwrite": "同名ファイルが存在する場合は上書きする",
         "backup": "data/backup に heuristics_YYYYMMDD.json.TIMESTAMP を最大 8 個保持"
       }
+    },
+    "heuristics-backfill.yml": {
+      "responsibility": "2025-07-01〜2026-06-30 の heuristics バックフィルを、concurrency group「auto-update」を共有する既存4ワークフロー（fetch.yml / margin.yml / download-jpx-xlsx.yml / heuristics.yml）がいずれも稼働していない時間帯にのみ、heuristics.yml の range モード（from_date/to_date）へ委譲する新規トリガー用ワークフロー。重い処理そのもの（OHLCV取得・スコア計算・営業日判定）は heuristics.yml / heuristics.js 側の既存責務のまま変更しない",
+      "schedule": [
+        "37 23 * * *（JST 08:37）"
+      ],
+      "scheduleRationale": "既存4ワークフローのスケジュールを UTC 順に並べると、22:07（fetch.yml）〜翌07:07（fetch.yml）の間が唯一約9時間空く時間帯であるため、前後のジョブと十分な余裕を持たせて 23:37 UTC に設定する。GitHub-hosted runner のジョブ既定上限（6時間）で打ち切られても 05:37 UTC 終了となり、翌 07:07 UTC の fetch.yml までに約1.5時間の余裕がある",
+      "workflowDispatch": {
+        "inputs": "なし（手動実行時も特別な入力パラメータは不要。resume date は data/heuristics/ の実ファイルから自動判定する）"
+      },
+      "nodeVersion": "24",
+      "dependencies": "なし（scripts/heuristics_backfill_trigger.js は Node.js 標準の fs / path のみを使用し、npm パッケージに依存しない）",
+      "concurrency": "group: heuristics-backfill / cancel-in-progress: false（本ワークフロー自身の多重起動防止。auto-update グループには参加しない）",
+      "permissions": "contents: read / actions: write（同一リポジトリの heuristics.yml を workflow_dispatch で起動するために actions: write が必要。データを直接コミットしないため contents は read のみ）",
+      "steps": {
+        "order": [
+          "Checkout repository（data/heuristics/ 配下を resume date 判定のためローカル参照する。push しないため fetch-depth 指定は不要）",
+          "Setup Node.js（24）",
+          "Determine resume date（node scripts/heuristics_backfill_trigger.js）",
+          "Check if any auto-update workflow is running or queued（fetch.yml / margin.yml / download-jpx-xlsx.yml / heuristics.yml の4ワークフローすべてを gh run list で確認）",
+          "Dispatch heuristics.yml（range mode）（resume date が範囲内かつ4ワークフローすべてが非稼働の場合のみ gh workflow run heuristics.yml -f from_date=... -f to_date=... を実行）",
+          "No action taken（バックフィル完了済み、または4ワークフローのいずれかが稼働中の場合はスキップし、GITHUB_STEP_SUMMARY にその旨を記録）"
+        ]
+      },
+      "resumeDateLogic": {
+        "script": "scripts/heuristics_backfill_trigger.js",
+        "range": "BACKFILL_START=20250701 / BACKFILL_END=20260630（固定）",
+        "logic": "actions/checkout 済みの data/heuristics/**/heuristics_YYYYMMDD.json をローカル走査し、BACKFILL_START〜BACKFILL_END の範囲内に限定して既存日付を収集する（2026-07-01 以降の通常スケジュールで生成済みのファイルは範囲外として除外される）。範囲内の最新日付の翌日を from_date とし、to_date は常に BACKFILL_END を指定する。範囲内に既存ファイルが1件もなければ from_date=BACKFILL_START。最新日付の翌日が BACKFILL_END を超える場合はバックフィル完了と判断し dispatch を行わない",
+        "apiCalls": "0（GitHub API・GitHub trees API のいずれも呼び出さない。actions/checkout 済みのローカルファイルのみを参照するため、GitHub API のレート制限を考慮する必要がない）",
+        "resumability": "heuristics.yml の commitStrategy.range により1日分の生成が完了するたびに commit・push されるため、本ワークフローのジョブが GitHub-hosted runner の既定上限（6時間）で打ち切られても、直前までの成果は失われない。翌晩のスケジュール実行時に、data/heuristics/ の最新日付の翌日から自動的に再開する"
+      },
+      "guardLogic": {
+        "targetWorkflows": [
+          "fetch.yml",
+          "margin.yml",
+          "download-jpx-xlsx.yml",
+          "heuristics.yml"
+        ],
+        "reason": "上記4ワークフローはすべて concurrency.group: auto-update を共有するため、いずれか1つでも in_progress または queued の場合は heuristics.yml の range モード dispatch をスキップする。これは無駄な dispatch を避けるための予防的なガードであり、安全性そのものは heuristics.yml 自身が持つ concurrency.group: auto-update（cancel-in-progress: false）が既存仕様として担保している（ガードをすり抜けて dispatch されても自動的にキュー待ちになり、他ワークフローとの同時実行や競合は発生しない）"
+      }
     }
   },
   "dataFlow": {
@@ -1263,6 +1303,7 @@
     "compareScreening": "window.onload の loadTradingDates() → API /trading_dates → #compareFromDate / #compareToDateSelect（共通データソース・直近3か月の市場開場日。デフォルトは先頭＝最新の市場開場日）を構築 → CSVアップロード時は setCompareFromDate() がファイル名日付を選択肢に存在しなければ動的追加した上で選択、extractCodesFromCsv() がコード列と「スコア」列を抽出して uploadedCsvScoreMap を構築 → screening.js（CSVアップロード時は parseCsvLine / extractCodesFromCsv でコード列抽出、証券コード直接入力時はテキスト入力値をそのまま使用・uploadedCsvScoreMap をリセット）→ API /screening?mode=compare（codes・from_date・to_date・source_mode）→ main.py が fetch_close_price で yfinance から個別に終値取得（source_mode=heuristics の場合のみ GitHub Raw の heuristics JSON も取得）→ 増減額・増減率・予測を算出して返却 → showResults() でテーブル描画（列順：スコア・上昇/下降の予測・上昇/下降の結果・比較元DATE終値・比較先DATE終値・増減（円）・増減（％）、行背景色=予測ベース・結果グループセル背景色=結果ベース・予測グループセル背景色=予測ベース）→ calcMatchRate() で合致率を算出して #compareMatchRate に表示",
     "margin": "scripts/margin.js → margin.json（信用取引可否データ）",
     "jpx": "scripts/download-jpx-xlsx.js → data_j.xlsx → scripts/fetch.js → data.json",
-    "heuristics": "scripts/heuristics.js → scripts/heuristics_conditions.js → heuristics_YYYYMMDD.json（single/normal モードは .github/workflows/heuristics.yml の最終ステップで、range モードは scripts/heuristics.js の commitAndPushDate() により日付ごとに GitHub へ commit・push） → main.py /screening?mode=heuristics（codes 指定時は絞り込み）→ app/heuristics_scoring_rules.py → app/heuristics_scoring.py（applied_*_rules を含むスコアを返却）→ screening.js（ tr-trend-up/down・td-heuristics-applied でハイライト表示）"
+    "heuristics": "scripts/heuristics.js → scripts/heuristics_conditions.js → heuristics_YYYYMMDD.json（single/normal モードは .github/workflows/heuristics.yml の最終ステップで、range モードは scripts/heuristics.js の commitAndPushDate() により日付ごとに GitHub へ commit・push） → main.py /screening?mode=heuristics（codes 指定時は絞り込み）→ app/heuristics_scoring_rules.py → app/heuristics_scoring.py（applied_*_rules を含むスコアを返却）→ screening.js（ tr-trend-up/down・td-heuristics-applied でハイライト表示）",
+    "heuristicsBackfill": ".github/workflows/heuristics-backfill.yml（毎日23:37 UTCのスケジュール実行）→ scripts/heuristics_backfill_trigger.js（data/heuristics/ をローカル走査し BACKFILL_START=20250701〜BACKFILL_END=20260630 の範囲内で resume date を決定。API呼び出しなし）→ fetch.yml / margin.yml / download-jpx-xlsx.yml / heuristics.yml の稼働状況を gh run list で確認（4ワークフローがいずれも非稼働の場合のみ次工程へ）→ gh workflow run heuristics.yml -f from_date=<resume date> -f to_date=20260630 で range モードを起動 → 以降は dataFlow.heuristics の既存フロー（commitAndPushDate() による日次 commit・push）に合流する"
   }
 }
