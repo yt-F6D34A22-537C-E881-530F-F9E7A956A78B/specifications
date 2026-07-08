@@ -600,6 +600,15 @@
       ],
       "history": "scripts/heuristics_backfill_trigger.js は新設時に require('fs') / require('path') という CommonJS 構文で実装されたため、CI（.github/workflows/heuristics-backfill.yml）実行時に ReferenceError: require is not defined in ES module scope で失敗する不具合があった。2026-07 に import fs from 'fs'; import path from 'path'; へ修正し、他の既存スクリプトと同じ ESM 記法に統一した"
     }
+ ,
+    "workflowNaming": {
+      "principle": "各 .github/workflows/*.yml の name フィールドは「【<ファイル名>】<英語での処理内容> (<日本語での簡潔な説明>)」の形式に統一する（例: 【heuristics.yml】Generate heuristics_YYYYMMDD.json (経験則スクリーニング)）。GitHub Actions の実行履歴一覧でどのワークフローが何をするものか一目で判別できるようにするための既存の取り決め",
+      "appliedIn": [
+        "heuristics.yml：【heuristics.yml】Generate heuristics_YYYYMMDD.json (経験則スクリーニング)",
+        "heuristics-backfill.yml：【heuristics-backfill.yml】Trigger heuristics.yml range backfill (経験則バックフィルトリガー)"
+      ],
+      "history": "heuristics-backfill.yml は新設時に name: Heuristics Backfill Trigger という本規則に沿わない表記だったため、2026-07 に既存ワークフローと同じ形式へ修正した"
+    }
   },
   "backend": {
     "fastapi": {
