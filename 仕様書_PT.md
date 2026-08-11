@@ -19,6 +19,10 @@
 personal-tools/
 ├── frontend/
 │   ├── index.html
+│   ├── assets/
+│   │   ├── favicon.ico
+│   │   ├── apple-touch-icon.png
+│   │   └── apple-touch-icon-v3.png
 │   ├── css/
 │   │   └── style.css
 │   └── js/
@@ -26,8 +30,19 @@ personal-tools/
 │       └── tabs/
 │           ├── ohlcvMergeTab.js      # タブ1固有ロジック
 │           └── comingSoonTab.js      # タブ2（プレースホルダ）
+├── scripts/
+│   └── generate_icons.py            # アイコン一式の生成スクリプト（Pillow使用）
 └── 仕様書.md
 ```
+
+## アイコン
+- `frontend/assets/favicon.ico`（16/32/48px）, `frontend/assets/apple-touch-icon.png`（180px）,
+  `frontend/assets/apple-touch-icon-v3.png`（180px、キャッシュ更新用の別名ファイル）
+- デザイン: style.css の配色（クリーム #ece5d6 × 濃紺 #1d2340）に合わせ、
+  yubune.co のトップページにある「水面の波紋」モチーフを同心円で簡略化したシンボルマーク。
+- 生成方法: `python3 scripts/generate_icons.py`（Pillow使用。出力先は `frontend/assets/`。
+  デザインを変更したい場合は `scripts/generate_icons.py` 内の
+  `COLOR_BG` / `COLOR_MARK` / `ring_specs` を編集して再実行する）
 
 ## タブ一覧
 
