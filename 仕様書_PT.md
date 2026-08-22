@@ -7,8 +7,9 @@
 ## 構成
 - フロントエンド: HTML / CSS / JavaScript（フレームワーク不使用）
 - バックエンド: 現時点では未使用（下記「今後の方針」参照）
-- 外部ライブラリ: 特定機能を実現するために不可欠なもののみ、CDN経由で個別導入を許容する
-  （フレームワーク導入は引き続き禁止。現状: Tesseract.js（OCR）をタブ2で使用。詳細はタブ一覧参照）
+- 外部ライブラリ: 特定機能を実現するために不可欠なもののみ、CDN経由または自前ホスティングで個別導入を許容する
+  （フレームワーク導入は引き続き禁止。現状: Tesseract.js（OCR, CDN経由）をタブ2で使用、
+  ParticleNetwork（背景アニメーション, `frontend/js/vendor/`に自前ホスティング）をページ全体で使用）
 
 ## コーディング規約
 - HTML: class 属性はスタイル調整専用。JavaScript からの DOM 取得は id / name / data-* を使用する。
@@ -28,7 +29,11 @@ personal-tools/
 │   ├── css/
 │   │   └── style.css
 │   └── js/
-│       ├── main.js                  # タブ切替の共通制御
+│       ├── common/
+│       │   ├── main.js               # タブ切替の共通制御
+│       │   └── particleBackground.js # 背景アニメーション（ParticleNetwork）の初期化
+│       ├── vendor/
+│       │   └── particleNetwork.min.js  # 背景アニメーション用ライブラリ（third-party, 自前ホスティング）
 │       └── tabs/
 │           ├── ohlcvMergeTab.js      # タブ1固有ロジック
 │           ├── imageOcrTab.js        # タブ2固有ロジック（画像OCR）
@@ -46,6 +51,17 @@ personal-tools/
 - 生成方法: `python3 scripts/generate_icons.py`（Pillow使用。出力先は `frontend/assets/`。
   デザインを変更したい場合は `scripts/generate_icons.py` 内の
   `COLOR_BG` / `COLOR_MARK` / `ring_specs` を編集して再実行する）
+
+## 背景アニメーション
+- ページ全体（全タブ共通）に、動く粒子ネットワークの背景アニメーションを表示する。
+- 使用ライブラリ: ParticleNetwork（third-party, MIT License）。
+  `frontend/js/vendor/particleNetwork.min.js` に自前ホスティングし、外部CDNへは依存しない。
+- 背景画像は使用せず、単色背景（style.cssの配色 --color-bg 相当）を指定する。
+  パーティクル・線の色は --color-fg 相当に合わせている。
+- `#particle-canvas` は `position: fixed` でビューポート全体を覆い、`z-index: -1` により
+  既存UI（header/nav/main）の背面に配置する。html/body自体への変更は行わない。
+- 初期化ロジックは `frontend/js/common/particleBackground.js` に実装する
+  （タブ固有ではない共通スクリプトのため、`main.js`と同じ `js/common/` 配下に配置する）。
 
 ## タブ一覧
 
@@ -96,3 +112,5 @@ personal-tools/
   従来のComing Soonタブをタブ3へ移動。外部ライブラリ導入方針を「構成」節に追記
 - タブ2に、精度向上のための前処理（Canvas APIによる拡大・グレースケール化・Otsu法二値化）、
   クリップボード画像貼り付け、認識言語の選択機能を追加
+- ページ全体の背景として、ParticleNetwork（自前ホスティング）による粒子ネットワークの
+  アニメーション背景を追加（背景画像は不使用、style.cssの配色に合わせた単色を使用）
