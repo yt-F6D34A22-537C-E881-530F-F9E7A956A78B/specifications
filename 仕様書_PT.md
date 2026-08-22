@@ -65,6 +65,8 @@ personal-tools/
     `position: fixed`を指定しても上書きされてしまう。そのため、fixed配置は
     外側のラッパー要素（`#particle-background-wrapper` / `.particle-canvas-wrapper`）側で行い、
     `#particle-canvas`はそのラッパー内で幅・高さ100%を占めるようにしている。
+  - 主張が強すぎないよう、`.particle-canvas-wrapper`に`opacity: 0.35`を指定し、
+    背景全体を薄く表示している（調整したい場合はこの数値のみ変更すればよい）。
 - 初期化ロジックは `frontend/js/common/particleBackground.js` に実装する
   （タブ固有ではない共通スクリプトのため、`main.js`と同じ `js/common/` 配下に配置する）。
 
