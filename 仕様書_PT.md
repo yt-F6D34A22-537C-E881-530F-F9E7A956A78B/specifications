@@ -60,6 +60,11 @@ personal-tools/
   パーティクル・線の色は --color-fg 相当に合わせている。
 - `#particle-canvas` は `position: fixed` でビューポート全体を覆い、`z-index: -1` により
   既存UI（header/nav/main）の背面に配置する。html/body自体への変更は行わない。
+  - 注意: ParticleNetworkライブラリは、渡したコンテナ自身に `position: relative` を
+    インラインスタイルで強制設定する仕様のため、`#particle-canvas`に直接CSSで
+    `position: fixed`を指定しても上書きされてしまう。そのため、fixed配置は
+    外側のラッパー要素（`#particle-background-wrapper` / `.particle-canvas-wrapper`）側で行い、
+    `#particle-canvas`はそのラッパー内で幅・高さ100%を占めるようにしている。
 - 初期化ロジックは `frontend/js/common/particleBackground.js` に実装する
   （タブ固有ではない共通スクリプトのため、`main.js`と同じ `js/common/` 配下に配置する）。
 
